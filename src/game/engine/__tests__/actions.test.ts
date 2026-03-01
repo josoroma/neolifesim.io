@@ -1,20 +1,24 @@
-// src/game/engine/__tests__/actions.test.ts — Tests for hunting and eating.
+// src/game/engine/__tests__/actions.test.ts — Tests for hunting, eating, and drinking.
 
 import { describe, it, expect } from 'vitest';
 import {
   attemptHunt,
   eat,
+  attemptDrink,
   distance,
   huntSuccessProbability,
 } from '../actions';
 import {
   type Needs,
   type Prey,
+  type WorldMap,
   PreySpecies,
   PREY_NUTRITION,
   HUNT_DETECTION_RANGE,
   HUNT_MIN_ENERGY,
   HUNT_ENERGY_COST,
+  DRINK_DETECTION_RANGE,
+  DRINK_THIRST_RESTORE,
   createNeeds,
 } from '../types';
 
@@ -322,5 +326,154 @@ describe('eat', () => {
         expect(result.needs.hunger).toBe(nutrition);
       },
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// attemptDrink()
+// ---------------------------------------------------------------------------
+
+describe('attemptDrink', () => {
+  /** Helper: create a WorldMap with water sources at given positions. */
+  function createWorldMap(waterPositions: Array<{ x: number; y: number }>): WorldMap {
+    return {
+      waterSources: waterPositions.map((position) => ({ position })),
+    };
+  }
+
+  describe('Scenario: Drink from water source', () => {
+    it('restores thirst by DRINK_THIRST_RESTORE when adjacent to water', () => {
+      const playerPos = { x: 5, y: 5 };
+      const worldMap = createWorldMap([{ x: 5.5, y: 5 }]); // within range
+      const needs: Needs = { ...createNeeds(), thirst: 30 };
+
+      const result = attemptDrink(playerPos, needs, worldMap);
+
+      expect(result.success).toBe(true);
+      expect(result.needs.thirst).toBe(70); // 30 + 40
+      expect(result.thirstRestored).toBe(40);
+      expect(result.message).toContain('restored');
+    });
+
+    it('restores exactly DRINK_THIRST_RESTORE (40) per Gherkin spec', () => {
+      expect(DRINK_THIRST_RESTORE).toBe(40);
+    });
+  });
+
+  describe('Scenario: Cannot drink away from water', () => {
+    it('fails when no water source is within detection range', () => {
+      const playerPos = { x: 0, y: 0 };
+      const worldMap = createWorldMap([{ x: 100, y: 100 }]);
+      const needs: Needs = { ...createNeeds(), thirst: 50 };
+
+      const result = attemptDrink(playerPos, needs, worldMap);
+
+      expect(result.success).toBe(false);
+      expect(result.needs).toEqual(needs); // unchanged
+      expect(result.thirstRestored).toBe(0);
+      expect(result.message).toBe('No water nearby');
+    });
+
+    it('fails when world has no water sources at all', () => {
+      const playerPos = { x: 5, y: 5 };
+      const worldMap = createWorldMap([]);
+      const needs: Needs = { ...createNeeds(), thirst: 50 };
+
+      const result = attemptDrink(playerPos, needs, worldMap);
+
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('No water nearby');
+    });
+  });
+
+  describe('Scenario: Drink at exact detection range boundary', () => {
+    it('fails when distance equals DRINK_DETECTION_RANGE (boundary)', () => {
+      const playerPos = { x: 0, y: 0 };
+      // Place water at exactly DRINK_DETECTION_RANGE away on x-axis
+      const worldMap = createWorldMap([{ x: DRINK_DETECTION_RANGE, y: 0 }]);
+      const needs: Needs = { ...createNeeds(), thirst: 50 };
+
+      const result = attemptDrink(playerPos, needs, worldMap);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('succeeds when distance is just under DRINK_DETECTION_RANGE', () => {
+      const playerPos = { x: 0, y: 0 };
+      const worldMap = createWorldMap([{ x: DRINK_DETECTION_RANGE - 0.01, y: 0 }]);
+      const needs: Needs = { ...createNeeds(), thirst: 50 };
+
+      const result = attemptDrink(playerPos, needs, worldMap);
+
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('Scenario: Thirst clamps to 0–100 range', () => {
+    it('restores from thirst = 0 (fully dehydrated)', () => {
+      const playerPos = { x: 0, y: 0 };
+      const worldMap = createWorldMap([{ x: 0.5, y: 0 }]);
+      const needs: Needs = { ...createNeeds(), thirst: 0 };
+
+      const result = attemptDrink(playerPos, needs, worldMap);
+
+      expect(result.success).toBe(true);
+      expect(result.needs.thirst).toBe(40); // 0 + 40
+      expect(result.thirstRestored).toBe(40);
+    });
+
+    it('does not exceed 100 when drinking near full thirst', () => {
+      const playerPos = { x: 0, y: 0 };
+      const worldMap = createWorldMap([{ x: 0.5, y: 0 }]);
+      const needs: Needs = { ...createNeeds(), thirst: 80 };
+
+      const result = attemptDrink(playerPos, needs, worldMap);
+
+      expect(result.needs.thirst).toBe(100);
+      expect(result.thirstRestored).toBe(20); // only 20 to reach cap
+    });
+
+    it('returns 0 thirst restored when already at 100', () => {
+      const playerPos = { x: 0, y: 0 };
+      const worldMap = createWorldMap([{ x: 0.5, y: 0 }]);
+      const needs: Needs = createNeeds(); // thirst = 100
+
+      const result = attemptDrink(playerPos, needs, worldMap);
+
+      expect(result.success).toBe(true);
+      expect(result.needs.thirst).toBe(100);
+      expect(result.thirstRestored).toBe(0);
+    });
+  });
+
+  describe('Scenario: Drinking does not affect other needs', () => {
+    it('preserves hunger, energy, and health', () => {
+      const playerPos = { x: 0, y: 0 };
+      const worldMap = createWorldMap([{ x: 0.5, y: 0 }]);
+      const needs: Needs = { hunger: 30, thirst: 40, energy: 50, health: 60 };
+
+      const result = attemptDrink(playerPos, needs, worldMap);
+
+      expect(result.needs.hunger).toBe(30);
+      expect(result.needs.energy).toBe(50);
+      expect(result.needs.health).toBe(60);
+    });
+  });
+
+  describe('Scenario: Multiple water sources — picks nearest', () => {
+    it('succeeds when at least one source is in range, even if others are far', () => {
+      const playerPos = { x: 0, y: 0 };
+      const worldMap = createWorldMap([
+        { x: 100, y: 100 }, // far away
+        { x: 1, y: 0 },    // within range
+        { x: 50, y: 50 },   // far away
+      ]);
+      const needs: Needs = { ...createNeeds(), thirst: 50 };
+
+      const result = attemptDrink(playerPos, needs, worldMap);
+
+      expect(result.success).toBe(true);
+      expect(result.needs.thirst).toBe(90);
+    });
   });
 });

@@ -15,6 +15,8 @@ export {
   HUNT_BASE_SUCCESS_RATE,
   HUNT_MIN_ENERGY,
   HUNT_ENERGY_COST,
+  DRINK_DETECTION_RANGE,
+  DRINK_THIRST_RESTORE,
   createNeeds,
   type SpeciesStats,
   type PlayerCharacter,
@@ -26,6 +28,9 @@ export {
   type PreyState,
   type HuntResult,
   type EatResult,
+  type WaterSource,
+  type WorldMap,
+  type DrinkResult,
 } from './types';
 
 export {
@@ -40,6 +45,7 @@ export { tickNeeds } from './needs';
 export {
   attemptHunt,
   eat,
+  attemptDrink,
   distance,
   huntSuccessProbability,
 } from './actions';

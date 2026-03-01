@@ -1,17 +1,21 @@
-// src/game/engine/actions.ts — Player actions: hunting, eating.
+// src/game/engine/actions.ts — Player actions: hunting, eating, drinking.
 // NO Phaser imports allowed in this module.
 
 import {
   type Needs,
   type Position,
   type Prey,
+  type WorldMap,
   type HuntResult,
   type EatResult,
+  type DrinkResult,
   PREY_NUTRITION,
   HUNT_DETECTION_RANGE,
   HUNT_BASE_SUCCESS_RATE,
   HUNT_MIN_ENERGY,
   HUNT_ENERGY_COST,
+  DRINK_DETECTION_RANGE,
+  DRINK_THIRST_RESTORE,
 } from './types';
 
 // ---------------------------------------------------------------------------
@@ -187,5 +191,67 @@ export function eat(needs: Needs, prey: Prey): EatResult {
     prey: { ...prey, state: 'dead' },
     nutritionGained,
     message: `Ate the ${prey.species} — restored ${nutritionGained} hunger`,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Drink
+// ---------------------------------------------------------------------------
+
+/**
+ * Find the nearest water source within {@link DRINK_DETECTION_RANGE}.
+ *
+ * @returns The distance to the nearest source, or `Infinity` if none are
+ *          within range.
+ */
+function nearestWaterDistance(playerPosition: Position, worldMap: WorldMap): number {
+  let minDist = Infinity;
+  for (const source of worldMap.waterSources) {
+    const d = distance(playerPosition, source.position);
+    if (d < minDist) {
+      minDist = d;
+    }
+  }
+  return minDist;
+}
+
+/**
+ * Attempt to drink from a nearby water source.
+ *
+ * Preconditions checked:
+ * 1. At least one water source must be within {@link DRINK_DETECTION_RANGE}
+ *    of the player position.
+ *
+ * On success thirst is restored by {@link DRINK_THIRST_RESTORE} (clamped to
+ * 100). Other needs are left unchanged.
+ *
+ * @param playerPosition  Current player position in the world.
+ * @param needs           Current player needs snapshot.
+ * @param worldMap        World map containing water source positions.
+ */
+export function attemptDrink(
+  playerPosition: Position,
+  needs: Needs,
+  worldMap: WorldMap,
+): DrinkResult {
+  const dist = nearestWaterDistance(playerPosition, worldMap);
+
+  if (dist >= DRINK_DETECTION_RANGE) {
+    return {
+      success: false,
+      needs,
+      thirstRestored: 0,
+      message: 'No water nearby',
+    };
+  }
+
+  const newThirst = clamp(needs.thirst + DRINK_THIRST_RESTORE);
+  const thirstRestored = newThirst - needs.thirst;
+
+  return {
+    success: true,
+    needs: { ...needs, thirst: newThirst },
+    thirstRestored,
+    message: `Drank water — restored ${thirstRestored} thirst`,
   };
 }

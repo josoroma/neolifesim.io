@@ -297,3 +297,63 @@ export interface EatResult {
   /** Human-readable message describing the outcome. */
   readonly message: string;
 }
+
+// ---------------------------------------------------------------------------
+// World Map — Water Sources (minimal for US-3.3, expanded in E4)
+// ---------------------------------------------------------------------------
+
+/**
+ * A water source in the world.
+ * Used for proximity checks in the drinking action.
+ *
+ * E4 (Tilemap World) will introduce a full tile grid with terrain types,
+ * walkability, spawn rules, and procedural generation.
+ */
+export interface WaterSource {
+  /** World position of the water source. */
+  readonly position: Position;
+}
+
+/**
+ * Minimal world map data needed by engine actions.
+ *
+ * Keeps only what US-3.3 requires (water sources for drinking). E4 will add
+ * a tile grid (with terrain types like forest, water, beach, etc.),
+ * walkability, and procedural generation.
+ */
+export interface WorldMap {
+  /** All water source locations in the world. */
+  readonly waterSources: readonly WaterSource[];
+}
+
+// ---------------------------------------------------------------------------
+// Drinking — Constants
+// ---------------------------------------------------------------------------
+
+/**
+ * Maximum distance (in world units) at which the player can drink
+ * from a water source. Analogous to {@link HUNT_DETECTION_RANGE}.
+ */
+export const DRINK_DETECTION_RANGE = 1.5;
+
+/**
+ * Thirst points restored per drink action (as specified in the Gherkin
+ * acceptance criteria for US-3.3).
+ */
+export const DRINK_THIRST_RESTORE = 40;
+
+// ---------------------------------------------------------------------------
+// Drinking — Result
+// ---------------------------------------------------------------------------
+
+/** Outcome of an `attemptDrink` call. */
+export interface DrinkResult {
+  /** Whether the drink action succeeded. */
+  readonly success: boolean;
+  /** Updated needs (thirst restored on success, unchanged on failure). */
+  readonly needs: Needs;
+  /** Thirst points actually restored (after clamping). 0 on failure. */
+  readonly thirstRestored: number;
+  /** Human-readable message describing the outcome. */
+  readonly message: string;
+}

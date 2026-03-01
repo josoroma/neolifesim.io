@@ -17,7 +17,7 @@
 | --- | --- | --- | --- | --- | --- |
 | E1: Project Setup | 3 | 0 | 0 | 3 | 0 |
 | E2: Character Creation | 2 | 0 | 0 | 2 | 0 |
-| E3: Survival Engine | 4 | 2 | 0 | 2 | 0 |
+| E3: Survival Engine | 4 | 1 | 0 | 3 | 0 |
 | E4: World & Day/Night Cycle | 3 | 3 | 0 | 0 | 0 |
 | E5: Entity & Ecosystem | 3 | 3 | 0 | 0 | 0 |
 | E6: Phaser Rendering | 4 | 4 | 0 | 0 | 0 |
@@ -340,7 +340,7 @@ Feature: Hunting
 
 ---
 
-### US-3.3: Drinking Action [ ]
+### US-3.3: Drinking Action [x]
 
 **As a** player
 **I want** to drink water from water sources
@@ -367,10 +367,10 @@ Feature: Drinking
 
 #### Tasks
 
-- [ ] T-3.3.1: Define water tiles in the world map data
-- [ ] T-3.3.2: Implement `attemptDrink(player, worldMap)` in `src/game/engine/actions.ts`
-- [ ] T-3.3.3: Add proximity check to water source
-- [ ] T-3.3.4: Write unit tests for drinking near and away from water
+- [x] T-3.3.1: Define water tiles in the world map data
+- [x] T-3.3.2: Implement `attemptDrink(player, worldMap)` in `src/game/engine/actions.ts`
+- [x] T-3.3.3: Add proximity check to water source
+- [x] T-3.3.4: Write unit tests for drinking near and away from water
 
 ---
 
