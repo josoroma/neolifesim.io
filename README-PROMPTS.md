@@ -684,6 +684,249 @@ Template per story:
 | 8–10 | US-1.1: Initialize Next.js Project | 2026-03-01 | `[x]` Complete |
 | 11–12 | US-1.2: Install Core Dependencies | 2026-03-01 | `[x]` Complete |
 | 13–15 | US-1.3: Testing Infrastructure | 2026-03-01 | `[x]` Complete |
+| 16–19 | US-2.1: Species, Gender and Name Selection | 2026-03-01 | `[x]` Complete |
+
+---
+
+### E2: US-2.1 — Species, Gender and Name Selection
+
+> Session date: 2026-03-01
+> Prerequisite: E1 complete — US-1.1 `[x]`, US-1.2 `[x]`, US-1.3 `[x]`
+
+---
+
+## Prompt 16 — Dependency & Readiness Analysis (US-2.1)
+
+**Output:** Confirmation that US-2.1 is safe to implement, with full task list, Gherkin criteria, and risk assessment.
+
+**Input files:** `SPECS.md`, `CLAUDE.md`
+
+```
+Read @SPECS.md and @CLAUDE.md. Confirm that E2: US-2.1 has no unmet dependencies
+and is the correct next story to implement.
+List all the tasks, their Gherkin acceptance criteria, and any risks specific to this story.
+```
+
+**Results:**
+
+| Verification | Status |
+| --- | --- |
+| E1 dependency (all 3 stories) | `[x]` — Next.js + TypeScript + Phaser/Jotai/Howler + Vitest |
+| No blockers | Confirmed — US-2.1 is pure engine logic with no coupling to unfinished epics |
+| Verdict | **GO** — US-2.1 is the correct next story |
+
+**Task inventory:**
+
+| Task | Description |
+| --- | --- |
+| T-2.1.1 | Define `PlayerCharacter` type in `src/game/engine/types.ts` (species, gender, name, level, xp) |
+| T-2.1.2 | Define `SnakeSpecies` enum with Bocaracá amarilla, Terciopelo, Serpiente lora |
+| T-2.1.3 | Implement `createCharacter(species, gender, name)` in `src/game/engine/character.ts` |
+| T-2.1.4 | Add name validation (non-empty, max 20 chars) |
+| T-2.1.5 | Write unit tests for character creation and validation |
+
+**Gherkin acceptance criteria:**
+
+```gherkin
+Feature: Character Creation
+  As a player
+  I want to choose my snake's species, gender, and name
+  So that I can personalize my character before starting
+
+  Scenario: Select species
+    Given the player is on the character creation screen
+    When the player selects "Terciopelo" from the species list
+    Then the selected species is set to "Terciopelo"
+    And species-specific stats are loaded
+
+  Scenario: Select gender
+    Given the player has selected a species
+    When the player selects "Female" as gender
+    Then the character gender is set to "Female"
+
+  Scenario: Enter valid name
+    Given the player has selected species and gender
+    When the player enters "Naga" as the character name
+    And the player confirms creation
+    Then a new character named "Naga" is created with default stats
+
+  Scenario: Reject empty name
+    Given the player is on the character creation screen
+    When the player leaves the name field empty
+    And the player attempts to confirm creation
+    Then an error message "Name is required" is displayed
+    And no character is created
+
+  Scenario Outline: Available species
+    Given the player is on the character creation screen
+    When the species list is displayed
+    Then "<species>" is available for selection
+
+    Examples:
+      | species            |
+      | Bocaracá amarilla  |
+      | Terciopelo         |
+      | Serpiente lora     |
+```
+
+**Risks identified:**
+
+| # | Risk | Severity | Mitigation |
+| --- | --- | --- | --- |
+| 1 | "Species-specific stats are loaded" — Gherkin expects stats but GDD/SPECS don't define them | Medium | Define sensible defaults (speed, stealth, venom, maxHealth) per species; flag for balance pass |
+| 2 | Max name length not in Gherkin — T-2.1.4 specifies max 20 chars but no scenario covers it | Low | Add test for names exceeding 20 characters beyond Gherkin coverage |
+| 3 | Gender type scope — only Male/Female implied, gameplay impact only at Level 2+ | Low | Keep `Gender` enum simple and extensible |
+| 4 | Unicode in species names — "Bocaracá amarilla" contains accented `á` | Low | Ensure enum values and string comparisons handle unicode correctly |
+
+---
+
+## Prompt 17 — Implement Story via Skill (US-2.1)
+
+**Output:** Engine types + character factory + validation + tests + updated `SPECS.md`
+
+**Input files:** `SPECS.md`, `CLAUDE.md`, `.claude/skills/implement-story/SKILL.md`
+
+```
+/implement-story US-2.1
+```
+
+The `/implement-story` skill executed the following workflow:
+
+1. Reads US-2.1 from SPECS.md — locates all tasks (T-2.1.1 through T-2.1.5)
+2. Verifies dependencies — confirms E1 fully `[x]` complete
+3. Plans implementation — 5 tasks producing 3 new files + 1 modification
+4. Implements each task:
+   - T-2.1.1: Created `src/game/engine/types.ts` with:
+     - `PlayerCharacter` interface (name, species, gender, level, xp, stats)
+     - All fields marked `readonly` for immutability
+   - T-2.1.2: Defined `SnakeSpecies` enum + `Gender` enum + `SpeciesStats` interface:
+     - `SnakeSpecies.BocaracaAmarilla = 'Bocaracá amarilla'`
+     - `SnakeSpecies.Terciopelo = 'Terciopelo'`
+     - `SnakeSpecies.SerpienteLora = 'Serpiente lora'`
+     - `SPECIES_STATS` config with per-species speed, stealth, venom, maxHealth
+   - T-2.1.3: Created `src/game/engine/character.ts` with:
+     - `createCharacter(species, gender, name)` — returns `PlayerCharacter` at level 1, xp 0
+     - Loads species-specific stats from `SPECIES_STATS`
+     - Trims whitespace from name before assignment
+   - T-2.1.4: Added validation in `character.ts`:
+     - `validateName(name)` — returns `{ valid, error? }` result object
+     - Rules: non-empty after trim, max 20 characters
+     - `createCharacter` throws on invalid name
+     - Exported `MAX_NAME_LENGTH = 20` constant
+   - T-2.1.5: Created `src/game/engine/__tests__/character.test.ts` — 20 tests:
+     - `validateName` (6 tests): valid name, empty, whitespace-only, too long, exact max, unicode
+     - `createCharacter` (8 tests): defaults, whitespace trim, stats per species (×3), throw empty, throw whitespace, throw too long
+     - `SnakeSpecies enum` (3 tests): count, display names via `it.each`
+     - `SPECIES_STATS` (3 tests): completeness, all positive values, distinct per species
+5. Updated barrel exports in `src/game/engine/index.ts` — re-exports all types, enums, functions
+6. Verifies Gherkin scenarios:
+   - `npx vitest run --reporter=verbose` → 23/23 tests pass (117ms)
+   - `npm run lint` → zero errors
+   - `npx tsc --noEmit` → zero type errors
+7. Updates SPECS.md:
+   - T-2.1.1 through T-2.1.5 → `[x]`
+   - US-2.1 header → `[x]`
+   - E2 progress row → `| E2: Character Creation | 2 | 1 | 0 | 1 | 0 |`
+8. Suggested commit:
+   ```
+   feat(engine): implement character creation system
+
+   Implements US-2.1: Species, Gender and Name Selection
+   Tasks: T-2.1.1, T-2.1.2, T-2.1.3, T-2.1.4, T-2.1.5
+
+   - SnakeSpecies enum (3 species) + Gender enum
+   - SPECIES_STATS config with per-species speed/stealth/venom/maxHealth
+   - createCharacter() factory with name validation
+   - 20 unit tests covering all Gherkin scenarios
+   ```
+
+**Files created/modified:**
+
+| File | Action |
+| --- | --- |
+| `src/game/engine/types.ts` | Created — `SnakeSpecies`, `Gender`, `SpeciesStats`, `SPECIES_STATS`, `PlayerCharacter` |
+| `src/game/engine/character.ts` | Created — `validateName()`, `createCharacter()`, `MAX_NAME_LENGTH` |
+| `src/game/engine/index.ts` | Modified — barrel exports for all new types and functions |
+| `src/game/engine/__tests__/character.test.ts` | Created — 20 test cases |
+| `SPECS.md` | Modified — US-2.1 tasks `[x]`, story header `[x]`, progress table updated |
+
+**Species stats introduced (not in GDD — design decision):**
+
+| Species | Speed | Stealth | Venom | Max Health |
+| --- | --- | --- | --- | --- |
+| Bocaracá amarilla | 50 | 50 | 50 | 100 |
+| Terciopelo | 35 | 40 | 75 | 120 |
+| Serpiente lora | 70 | 65 | 30 | 80 |
+
+---
+
+## Prompt 18 — Run Tests via Skill (US-2.1)
+
+**Output:** Test results report with pass/fail counts and engine isolation check.
+
+**Input files:** `.claude/skills/run-tests/SKILL.md`
+
+```
+/run-tests
+```
+
+The `/run-tests` skill executed the following workflow:
+
+1. Runs `npx vitest run --reporter=verbose` → Vitest v4.0.18
+2. Analyzes results — 23/23 tests pass across 2 test files:
+   - `engine.test.ts` (3 tests): engine module loading, no browser globals, arithmetic placeholder
+   - `character.test.ts` (20 tests): validateName (6), createCharacter (8), SnakeSpecies enum (3), SPECIES_STATS (3)
+3. Checks engine isolation:
+   - No `from 'phaser'` imports in `src/game/engine/` ✓
+   - No `from "phaser"` imports in `src/game/engine/` ✓
+   - No `window.` references in `src/game/engine/` ✓
+   - No `document.` references in `src/game/engine/` ✓
+4. Reports summary: **23 passed** | **0 failed** | **0 skipped**
+
+---
+
+## Prompt 19 — Structured Code Review (US-2.1)
+
+**Output:** Review report against CLAUDE.md guidelines, coding standards, and Gherkin acceptance criteria.
+
+```
+Perform a structured review of the current User Story implementation against the
+guidelines in CLAUDE.md, established coding standards, and the acceptance criteria
+specified in SPECS.md, identifying any gaps, deviations, or inconsistencies.
+```
+
+**Gherkin coverage:**
+
+| Scenario | Status | Evidence |
+| --- | --- | --- |
+| Select species — set to "Terciopelo", stats loaded | **PASS** | `createCharacter` accepts `SnakeSpecies`, test asserts species + stats |
+| Select gender — set to "Female" | **PASS** | `createCharacter` accepts `Gender`, test asserts `character.gender` |
+| Enter valid name — "Naga" created with default stats | **PASS** | Test asserts name, level=1, xp=0 |
+| Reject empty name — error "Name is required" | **PASS** | `validateName('')` returns error; `createCharacter` throws |
+| Available species — all 3 selectable | **PASS** | Enum count test + `it.each` verifies display names |
+
+**CLAUDE.md compliance:**
+
+| Guideline | Status |
+| --- | --- |
+| TypeScript strict, no `any` | PASS — all types explicit, `readonly` throughout |
+| ES modules only | PASS — `import`/`export` only |
+| 2-space indentation | PASS |
+| Engine has no Phaser imports | PASS — grep verified |
+| Engine has no browser APIs | PASS — no `window`/`document` |
+| Persist: species, gender, name, level, xp | PASS — all in `PlayerCharacter` |
+
+**Minor findings (non-blocking):**
+
+| # | Finding | Severity |
+| --- | --- | --- |
+| 1 | `SpeciesStats` type annotation in `character.ts` is redundant (TS infers from record lookup) | Info |
+| 2 | Species stats values not defined in GDD/SPECS — introduced as design decision | Low |
+| 3 | No test for 1-character name edge case | Info |
+
+**Verdict:** Implementation fully aligned with SPECS.md acceptance criteria and CLAUDE.md architecture rules. No gaps, no deviations, no blocking issues.
+
+---
 
 **Reusability:** These prompts can be adapted for any game project by replacing:
 - `README-GDD.md` content (game design)

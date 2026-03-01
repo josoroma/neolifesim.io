@@ -16,7 +16,7 @@
 | Epic | Stories | Todo | In Progress | Completed | Blocked |
 | --- | --- | --- | --- | --- | --- |
 | E1: Project Setup | 3 | 0 | 0 | 3 | 0 |
-| E2: Character Creation | 2 | 2 | 0 | 0 | 0 |
+| E2: Character Creation | 2 | 1 | 0 | 1 | 0 |
 | E3: Survival Engine | 4 | 4 | 0 | 0 | 0 |
 | E4: World & Day/Night Cycle | 3 | 3 | 0 | 0 | 0 |
 | E5: Entity & Ecosystem | 3 | 3 | 0 | 0 | 0 |
@@ -130,7 +130,7 @@ Feature: Testing Infrastructure
 
 ## E2: Character Creation
 
-### US-2.1: Species, Gender and Name Selection [ ]
+### US-2.1: Species, Gender and Name Selection [x]
 
 **As a** player
 **I want** to choose my snake's species, gender, and name
@@ -180,11 +180,11 @@ Feature: Character Creation
 
 #### Tasks
 
-- [ ] T-2.1.1: Define `PlayerCharacter` type in `src/game/engine/types.ts` (species, gender, name, level, xp)
-- [ ] T-2.1.2: Define `SnakeSpecies` enum with Bocaracá amarilla, Terciopelo, Serpiente lora
-- [ ] T-2.1.3: Implement `createCharacter(species, gender, name)` in `src/game/engine/character.ts`
-- [ ] T-2.1.4: Add name validation (non-empty, max 20 chars)
-- [ ] T-2.1.5: Write unit tests for character creation and validation
+- [x] T-2.1.1: Define `PlayerCharacter` type in `src/game/engine/types.ts` (species, gender, name, level, xp)
+- [x] T-2.1.2: Define `SnakeSpecies` enum with Bocaracá amarilla, Terciopelo, Serpiente lora
+- [x] T-2.1.3: Implement `createCharacter(species, gender, name)` in `src/game/engine/character.ts`
+- [x] T-2.1.4: Add name validation (non-empty, max 20 chars)
+- [x] T-2.1.5: Write unit tests for character creation and validation
 
 ---
 
