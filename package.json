@@ -18,11 +18,15 @@
   },
   "homepage": "https://github.com/josoroma/neolifesim.io#readme",
   "dependencies": {
+    "howler": "^2.2.4",
+    "jotai": "^2.18.0",
     "next": "16.1.6",
+    "phaser": "^3.90.0",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
+    "@types/howler": "^2.2.12",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

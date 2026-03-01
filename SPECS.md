@@ -15,7 +15,7 @@
 
 | Epic | Stories | Todo | In Progress | Completed | Blocked |
 | --- | --- | --- | --- | --- | --- |
-| E1: Project Setup | 3 | 2 | 0 | 1 | 0 |
+| E1: Project Setup | 3 | 1 | 0 | 2 | 0 |
 | E2: Character Creation | 2 | 2 | 0 | 0 | 0 |
 | E3: Survival Engine | 4 | 4 | 0 | 0 | 0 |
 | E4: World & Day/Night Cycle | 3 | 3 | 0 | 0 | 0 |
@@ -64,7 +64,7 @@ Feature: Project Initialization
 
 ---
 
-### US-1.2: Install Core Dependencies [ ]
+### US-1.2: Install Core Dependencies [x]
 
 **As a** developer
 **I want** Phaser 3, Jotai, and Howler.js installed
@@ -90,9 +90,9 @@ Feature: Core Dependencies
 
 #### Tasks
 
-- [ ] T-1.2.1: Install `phaser`, `jotai`, `howler` and their type definitions
-- [ ] T-1.2.2: Verify Phaser dynamic import works without SSR errors
-- [ ] T-1.2.3: Create `src/game/` folder structure: `engine/`, `render/`, `state/`, `save/`
+- [x] T-1.2.1: Install `phaser`, `jotai`, `howler` and their type definitions
+- [x] T-1.2.2: Verify Phaser dynamic import works without SSR errors
+- [x] T-1.2.3: Create `src/game/` folder structure: `engine/`, `render/`, `state/`, `save/`
 
 ---
 
