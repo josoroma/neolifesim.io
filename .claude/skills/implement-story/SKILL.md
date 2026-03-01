@@ -1,5 +1,5 @@
 ---
-description: "Implement a user story from SPECS.md. Usage: /implement-story US-3.1"
+description: "Implement a user story from SPECS.md. Usage: /implement-story US-1.1"
 disable-model-invocation: true
 ---
 
@@ -13,13 +13,13 @@ Implement a specific user story from SPECS.md end-to-end.
 /implement-story <story-id>
 ```
 
-Example: `/implement-story US-3.1`
+Example: `/implement-story US-1.1`
 
 ## Workflow
 
 ### 1. Read the story
 
-- Open `SPECS.md` and locate the user story by ID (e.g., `US-3.1`)
+- Open `SPECS.md` and locate the user story by ID (e.g., `US-1.1`)
 - Read all tasks (`T-x.y.z`) under that story
 - Read the Gherkin acceptance criteria for each task
 
