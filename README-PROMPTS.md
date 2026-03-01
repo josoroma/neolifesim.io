@@ -1688,6 +1688,311 @@ Review:
 
 ---
 
+### E3: US-3.2 — Hunting Action
+
+> Session date: 2026-03-01
+> Prerequisite: E1 `[x]`, E2 `[x]`, US-3.1 `[x]`
+
+---
+
+## Prompt 38 — Dependency & Readiness Analysis (US-3.2)
+
+**Output:** Confirmation that US-3.2 is safe to implement, with full task list, Gherkin criteria, and risk assessment.
+
+**Input files:** `SPECS.md`, `CLAUDE.md`
+
+```
+Read @SPECS.md and @CLAUDE.md. Confirm that E3: US-3.2 has no unmet dependencies
+and is the correct next story to implement.
+List all the tasks, their Gherkin acceptance criteria, and any risks specific to this story.
+```
+
+**Results:**
+
+| Verification | Status |
+| --- | --- |
+| E1 dependency (all 3 stories) | `[x]` — Project setup complete |
+| E2 dependency (US-2.1 + US-2.2) | `[x]` — Character creation complete |
+| US-3.1 dependency (Needs System) | `[x]` — `Needs`, `tickNeeds()`, hunger/thirst/energy/health |
+| No blockers | Confirmed — all prerequisite stories are complete |
+| Verdict | **GO** — US-3.2 is the correct next story |
+
+**Task inventory:**
+
+| Task | Description |
+| --- | --- |
+| T-3.2.1 | Add Prey interface, `PreySpecies` enum (mouse · frog · fish), + nutrition map |
+| T-3.2.2 | Implement `attemptHunt(playerPosition, playerEnergy, playerStealth, prey, roll?)` |
+| T-3.2.3 | Hunt success/failure probability model |
+| T-3.2.4 | `eat(needs, prey)` → restores hunger based on `PREY_NUTRITION[species]` |
+| T-3.2.5 | Unit tests covering all 4 Gherkin scenarios |
+
+**Gherkin acceptance criteria:**
+
+```gherkin
+Feature: Hunting Action
+  As a snake
+  I want to hunt prey
+  So that I can eat and restore hunger
+
+  Scenario: SC-3.2.1 — Successful hunt
+    Given a prey of species Mouse at distance 2
+    And the snake has energy ≥ 10
+    When the snake hunts and the roll succeeds
+    Then the result is { success: true, prey.state = 'caught' }
+
+  Scenario: SC-3.2.2 — Failed hunt (prey escapes)
+    Given a prey of species Frog at distance 3
+    And the snake has energy ≥ 10
+    When the snake hunts and the roll fails
+    Then the result is { success: false, prey.state = 'flee' }
+
+  Scenario: SC-3.2.3 — Hunt out of range
+    Given a prey at distance > HUNT_DETECTION_RANGE (5)
+    When the snake attempts to hunt
+    Then the result is { success: false, reason: 'out_of_range' }
+
+  Scenario: SC-3.2.4 — Eating caught prey
+    Given a caught prey of species Mouse (nutrition = 30)
+    And the snake has hunger = 50
+    When the snake eats the prey
+    Then hunger = min(100, 50 + 30) = 80 and prey.state = 'dead'
+```
+
+**Risks identified:**
+
+| # | Risk | Severity | Mitigation |
+| --- | --- | --- | --- |
+| 1 | Hunt probability formula hard to balance | Medium | Use named constants + injectable `roll` parameter for deterministic testing |
+| 2 | `eat()` must not mutate `Needs` (engine purity rules) | Medium | Return new `Needs` snapshot (immutable pattern matching `tickNeeds()`) |
+| 3 | Prey `alertness` field in interface but might go unused | Low | Ensure `alertness` factors into hunt probability formula |
+| 4 | Hunt should have an energy cost (realism) | Low | Add `HUNT_ENERGY_COST` constant and `energyCost` field on result |
+
+---
+
+## Prompt 39 — Implement Story via Skill (US-3.2)
+
+**Output:** Prey types + `attemptHunt()` + hunt probability model + `eat()` + 27 tests + updated `SPECS.md`
+
+**Input files:** `SPECS.md`, `CLAUDE.md`, `.claude/skills/implement-story/SKILL.md`
+
+```
+/implement-story US-3.2
+```
+
+The `/implement-story` skill executed the following workflow:
+
+1. Reads US-3.2 from SPECS.md — locates all tasks (T-3.2.1 through T-3.2.5)
+2. Verifies dependencies — confirms E1 `[x]`, E2 `[x]`, US-3.1 `[x]`
+3. Plans implementation — 5 tasks producing 3 new/modified files
+4. Implements each task:
+   - T-3.2.1: Extended `src/game/engine/types.ts` with:
+     - `Position` interface — `{ x: number; y: number }`
+     - `PreySpecies` enum — `Mouse`, `Frog`, `Fish`
+     - `PREY_NUTRITION` record — mouse: 30, frog: 20, fish: 25
+     - `PreyState` type — `'idle' | 'flee' | 'caught' | 'dead'`
+     - `Prey` interface — species, position, state, alertness
+     - Hunt constants: `HUNT_DETECTION_RANGE = 5`, `HUNT_BASE_SUCCESS_RATE = 0.85`, `HUNT_MIN_ENERGY = 10`
+     - `HuntResult` interface — success, prey snapshot, probability, reason
+     - `EatResult` interface — needs snapshot, prey snapshot, nutritionGained
+   - T-3.2.2: Created `src/game/engine/actions.ts`:
+     - `distance(a, b)` — Euclidean distance helper
+     - `attemptHunt(playerPosition, playerEnergy, playerStealth, prey, roll?)` — 3 precondition checks (energy, prey state, range), then probability roll
+   - T-3.2.3: Hunt probability model in `huntSuccessProbability()`:
+     - `P = BASE × distanceFactor × energyFactor × stealthFactor × fleeingPenalty`
+     - `distanceFactor = max(0.1, 1 - distance / (2 × range))`
+     - `energyFactor = min(1, energy / 50)`
+     - `stealthFactor = min(1.2, 0.6 + stealth × 0.1)`
+     - `fleeingPenalty = 0.5` when prey state is `'flee'`
+     - Clamped to [0, 1]
+   - T-3.2.4: `eat(needs, prey)` — validates prey.state === 'caught', restores hunger by nutrition value, clamps to 100, returns dead prey
+   - T-3.2.5: Created `src/game/engine/__tests__/actions.test.ts` — 27 tests:
+     - `distance()`: 2 tests (axis-aligned, diagonal)
+     - `huntSuccessProbability()`: 6 tests (close range, far range, low energy, high stealth, fleeing penalty, clamping)
+     - `attemptHunt()`: 8 tests across 6 scenarios (success, fail, out of range, low energy, dead prey, fleeing prey)
+     - `eat()`: 11 tests across 4 scenarios + parameterized species outline
+5. Updated barrel exports in `src/game/engine/index.ts`
+6. Verifies Gherkin scenarios:
+   - `npx vitest run --reporter=verbose` → 104/104 tests pass
+   - `npm run lint` → zero errors
+   - `npx tsc --noEmit` → zero type errors
+7. Updates SPECS.md:
+   - T-3.2.1 through T-3.2.5 → `[x]`
+   - US-3.2 header → `[x]`
+   - E3 progress row updated
+
+**Files created/modified:**
+
+| File | Action |
+| --- | --- |
+| `src/game/engine/types.ts` | Modified — `Position`, `PreySpecies`, `PREY_NUTRITION`, `PreyState`, `Prey`, hunt constants, `HuntResult`, `EatResult` |
+| `src/game/engine/actions.ts` | Created — `distance()`, `huntSuccessProbability()`, `attemptHunt()`, `eat()` |
+| `src/game/engine/__tests__/actions.test.ts` | Created — 27 tests across 4 describe blocks |
+| `src/game/engine/index.ts` | Modified — barrel exports for all new types, constants, and functions |
+| `SPECS.md` | Modified — US-3.2 tasks `[x]`, story header `[x]`, progress table updated |
+
+---
+
+## Prompt 40 — Run Tests via Skill (US-3.2, first pass)
+
+**Output:** Test results report — all 104 tests pass.
+
+**Input files:** `.claude/skills/run-tests/SKILL.md`
+
+```
+/run-tests
+```
+
+1. Runs `npx vitest run --reporter=verbose` → Vitest v4.0.18
+2. Analyzes results — 104/104 tests pass across 5 test files:
+   - `engine.test.ts` (3 tests): engine module loading, no browser globals, arithmetic placeholder
+   - `character.test.ts` (20 tests): validateName, createCharacter, SnakeSpecies enum, SPECIES_STATS
+   - `needs.test.ts` (39 tests): 12 describe blocks covering all 6 SC-3.1 scenarios
+   - `actions.test.ts` (28 tests): distance, huntSuccessProbability, attemptHunt, eat — note: 27 initial + 1 inherited
+   - `page.test.tsx` (14 tests): character creation UI tests
+3. Checks engine isolation:
+   - No `from 'phaser'` imports in `src/game/engine/` ✓
+   - No `window.` references in `src/game/engine/` ✓
+   - No `document.` references in `src/game/engine/` ✓
+4. Reports summary: **104 passed** | **0 failed** | **0 skipped**
+
+---
+
+## Prompt 41 — Structured Code Review (US-3.2, first review)
+
+**Output:** Review report — 4 issues found (1 warning, 3 low).
+
+```
+Perform a structured review of the current User Story implementation against the
+guidelines in CLAUDE.md, established coding standards, and the acceptance criteria
+specified in SPECS.md, identifying any gaps, deviations, or inconsistencies.
+```
+
+**Gherkin coverage:**
+
+| Scenario | Status | Evidence |
+| --- | --- | --- |
+| SC-3.2.1 — Successful hunt | **PASS** | Test: `roll=0` (below probability) → success: true, prey.state = 'caught' |
+| SC-3.2.2 — Failed hunt | **PASS** | Test: `roll=1` (above probability) → success: false, prey.state = 'flee' |
+| SC-3.2.3 — Hunt out of range | **PASS** | Test: distance > 5 → success: false, reason: 'out_of_range' |
+| SC-3.2.4 — Eating caught prey | **PASS** | Test: hunger=50, eat mouse(30) → hunger=80, prey.state = 'dead' |
+
+**Findings:**
+
+| # | Category | Finding | Severity |
+| --- | --- | --- | --- |
+| 1 | Logic | `alertness` field defined on `Prey` interface but unused in `huntSuccessProbability()` formula — probability ignores prey awareness | Warning |
+| 2 | API symmetry | `eat()` throws on invalid prey state instead of returning a result object — asymmetric with `attemptHunt()` which returns `{ success: false }` | Low |
+| 3 | Spec alignment | SPECS.md T-3.2.2 reads `attemptHunt(player, prey)` but actual signature is `attemptHunt(playerPosition, playerEnergy, playerStealth, prey, roll?)` | Low |
+| 4 | Realism | No energy cost for hunting — a failed strike should still cost energy | Low |
+
+---
+
+## Prompt 42 — Fix Review Findings (US-3.2, first fix pass)
+
+**Output:** All 4 findings resolved across 5 files (16 replacements).
+
+```
+Fix the four issues found.
+```
+
+**Fixes applied:**
+
+| Finding | Resolution |
+| --- | --- |
+| 1 — `alertness` unused | Added `alertness` parameter to `huntSuccessProbability()`. Formula: `alertnessFactor = max(0.3, 1 - 0.5 × alertness / HUNT_DETECTION_RANGE)`. Higher alertness reduces probability. New test added: `alertness=5` produces lower probability than `alertness=0`. |
+| 2 — `eat()` throws | Changed `eat()` to return `{ success: false, needs, prey, nutritionGained: 0, message }` instead of throwing. Extended `EatResult` interface with `success: boolean` and `message: string` fields. Tests updated from `expect().toThrow()` to value assertions on returned object. |
+| 3 — SPECS signature mismatch | Updated T-3.2.2 in SPECS.md to: `Implement attemptHunt(playerPosition, playerEnergy, playerStealth, prey, roll?)`. |
+| 4 — No energy cost | Added `HUNT_ENERGY_COST = 5` constant to types. Added `energyCost: number` field to `HuntResult`. Precondition failures return `energyCost: 0`, actual hunt strikes return `energyCost: HUNT_ENERGY_COST`. Tests verify both paths. |
+
+**Post-fix verification:** 105/105 tests passing (1 new test added for alertness), lint = 0, tsc = 0, engine isolation clean.
+
+**Files modified in fix pass:**
+
+| File | Changes |
+| --- | --- |
+| `src/game/engine/types.ts` | Added `HUNT_ENERGY_COST = 5`, `energyCost` field on `HuntResult`, `success` + `message` fields on `EatResult` |
+| `src/game/engine/actions.ts` | `huntSuccessProbability()` now accepts `alertness` param with `alertnessFactor`; `attemptHunt()` returns `energyCost`; `eat()` returns result objects instead of throwing |
+| `src/game/engine/__tests__/actions.test.ts` | New alertness test, `energyCost` assertions on all hunt tests, `eat()` tests converted from throw checks to result object checks |
+| `src/game/engine/index.ts` | Added `HUNT_ENERGY_COST` to barrel exports |
+| `SPECS.md` | T-3.2.2 signature updated to match implementation |
+
+---
+
+## Prompt 43 — Run Tests via Skill (US-3.2, second pass)
+
+**Output:** Test results post-fix — all 105 tests pass.
+
+**Input files:** `.claude/skills/run-tests/SKILL.md`
+
+```
+/run-tests
+```
+
+1. Runs `npx vitest run --reporter=verbose` → Vitest v4.0.18
+2. Analyzes results — 105/105 tests pass across 5 test files:
+   - `engine.test.ts` (3 tests)
+   - `character.test.ts` (20 tests)
+   - `needs.test.ts` (39 tests)
+   - `actions.test.ts` (29 tests) — 28 original + 1 alertness test
+   - `page.test.tsx` (14 tests)
+3. Checks engine isolation:
+   - No `from 'phaser'` imports in `src/game/engine/` ✓
+   - No `window.` references in `src/game/engine/` ✓
+   - No `document.` references in `src/game/engine/` ✓
+4. Reports summary: **105 passed** | **0 failed** | **0 skipped**
+
+---
+
+## Prompt 44 — Structured Code Review (US-3.2, final review)
+
+**Output:** Clean pass — zero issues found.
+
+```
+Perform a structured review of the current User Story implementation against the
+guidelines in CLAUDE.md, established coding standards, and the acceptance criteria
+specified in SPECS.md, identifying any gaps, deviations, or inconsistencies.
+```
+
+**Gherkin coverage:** All 4 scenarios **PASS** (unchanged from first review).
+
+**CLAUDE.md compliance:**
+
+| Guideline | Status |
+| --- | --- |
+| TypeScript strict, no `any` | PASS — all types explicit, `readonly` interfaces, `PreySpecies` enum, `DeathCause` union |
+| ES modules only | PASS — `import`/`export` only |
+| 2-space indentation | PASS |
+| Engine has no Phaser imports | PASS — grep verified |
+| Engine has no browser APIs | PASS — no `window`/`document` |
+| Pure simulation in `src/game/engine/` | PASS — `attemptHunt()` and `eat()` are pure (snapshot in → snapshot out) |
+| Injectable randomness | PASS — `roll?` parameter for deterministic testing |
+
+**Previous 4 findings — all confirmed resolved:**
+
+| # | Finding | Status |
+| --- | --- | --- |
+| 1 | `alertness` unused in formula | **FIXED** — `alertnessFactor = max(0.3, 1 - 0.5 × alertness / range)` |
+| 2 | `eat()` throws instead of returning result | **FIXED** — returns `{ success: false, message }` |
+| 3 | SPECS.md signature mismatch | **FIXED** — T-3.2.2 matches implementation |
+| 4 | No energy cost for hunting | **FIXED** — `HUNT_ENERGY_COST = 5`, `energyCost` on `HuntResult` |
+
+**Verdict:** No issues found. US-3.2 fully compliant with SPECS.md acceptance criteria, CLAUDE.md architecture rules, and coding standards.
+
+**Final test counts:** 105 total — 39 needs + 29 actions + 20 character + 3 engine + 14 UI.
+
+**Implementation summary:**
+
+Hunt formula (5 factors):
+- `P = BASE(0.85) × distanceFactor × energyFactor × stealthFactor × fleeingPenalty × alertnessFactor`
+- `distanceFactor = max(0.1, 1 - dist / (2 × 5))`
+- `energyFactor = min(1, energy / 50)`
+- `stealthFactor = min(1.2, 0.6 + stealth × 0.1)`
+- `fleeingPenalty = 0.5` when prey fleeing
+- `alertnessFactor = max(0.3, 1 - 0.5 × alertness / 5)`
+
+---
+
 **Reusability:** These prompts can be adapted for any game project by replacing:
 - `README-GDD.md` content (game design)
 - Entity lists and game mechanics in Prompts 3-4

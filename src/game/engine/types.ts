@@ -186,3 +186,114 @@ export function createNeeds(maxHealth = 100): Needs {
   const health = Math.min(Math.max(0, maxHealth), 100);
   return { hunger: 100, thirst: 100, energy: 100, health };
 }
+
+// ---------------------------------------------------------------------------
+// Position
+// ---------------------------------------------------------------------------
+
+/** 2D world position shared by all entities. */
+export interface Position {
+  readonly x: number;
+  readonly y: number;
+}
+
+// ---------------------------------------------------------------------------
+// Prey
+// ---------------------------------------------------------------------------
+
+/** Prey species that can be hunted by the player. */
+export enum PreySpecies {
+  Mouse = 'mouse',
+  Frog = 'frog',
+  Fish = 'fish',
+}
+
+/** How many hunger points eating a given prey restores. */
+export const PREY_NUTRITION: Readonly<Record<PreySpecies, number>> = {
+  [PreySpecies.Mouse]: 30,
+  [PreySpecies.Frog]: 20,
+  [PreySpecies.Fish]: 25,
+} as const;
+
+/**
+ * Prey state machine states.
+ *
+ * - `idle`   — wandering peacefully; can be hunted.
+ * - `flee`   — has detected a threat; harder to catch.
+ * - `caught` — captured by the player; ready to be eaten.
+ * - `dead`   — consumed or killed; pending removal.
+ */
+export type PreyState = 'idle' | 'flee' | 'caught' | 'dead';
+
+/** A prey entity in the simulation. */
+export interface Prey {
+  /** Discriminant for entity kind (enables future union types). */
+  readonly kind: 'prey';
+  /** Prey species determines nutrition and base alertness. */
+  readonly species: PreySpecies;
+  /** Current position in the world. */
+  readonly position: Position;
+  /** Current state machine state. */
+  readonly state: PreyState;
+  /** Detection radius — prey becomes alert when a predator enters this range. */
+  readonly alertness: number;
+}
+
+// ---------------------------------------------------------------------------
+// Hunting — Constants
+// ---------------------------------------------------------------------------
+
+/**
+ * Maximum distance (in world units) at which the player can initiate a hunt.
+ * Beyond this the prey is out of range.
+ */
+export const HUNT_DETECTION_RANGE = 5;
+
+/**
+ * Base probability of a successful hunt when the player is at distance 0
+ * with full energy and prey is idle. Scales down with distance and prey
+ * alertness, and up with player stealth.
+ */
+export const HUNT_BASE_SUCCESS_RATE = 0.85;
+
+/**
+ * Minimum energy required to attempt a hunt.
+ * Below this the player is too exhausted.
+ */
+export const HUNT_MIN_ENERGY = 10;
+
+/**
+ * Energy deducted when the player actually performs a hunt strike
+ * (not charged on precondition failures like out-of-range).
+ */
+export const HUNT_ENERGY_COST = 5;
+
+// ---------------------------------------------------------------------------
+// Hunting — Result
+// ---------------------------------------------------------------------------
+
+/** Outcome of an `attemptHunt` call. */
+export interface HuntResult {
+  /** Whether the hunt succeeded (prey caught). */
+  readonly success: boolean;
+  /** Updated prey (state may change to 'caught' or 'flee'). */
+  readonly prey: Prey;
+  /** Human-readable message describing the outcome. */
+  readonly message: string;
+  /** Energy spent on this hunt attempt (0 when blocked by a precondition). */
+  readonly energyCost: number;
+}
+
+/** Outcome of an `eat` call. */
+export interface EatResult {
+  /** Whether the eat action succeeded. */
+  readonly success: boolean;
+  /** Updated needs (unchanged on failure). */
+  readonly needs: Needs;
+  /** Updated prey (state becomes 'dead' on success, unchanged on failure). */
+  readonly prey: Prey;
+  /** Hunger points actually restored (after clamping). 0 on failure. */
+  readonly nutritionGained: number;
+  /** Human-readable message describing the outcome. */
+  readonly message: string;
+}

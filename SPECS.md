@@ -17,7 +17,7 @@
 | --- | --- | --- | --- | --- | --- |
 | E1: Project Setup | 3 | 0 | 0 | 3 | 0 |
 | E2: Character Creation | 2 | 0 | 0 | 2 | 0 |
-| E3: Survival Engine | 4 | 3 | 0 | 1 | 0 |
+| E3: Survival Engine | 4 | 2 | 0 | 2 | 0 |
 | E4: World & Day/Night Cycle | 3 | 3 | 0 | 0 | 0 |
 | E5: Entity & Ecosystem | 3 | 3 | 0 | 0 | 0 |
 | E6: Phaser Rendering | 4 | 4 | 0 | 0 | 0 |
@@ -287,7 +287,7 @@ Feature: Needs System
 
 ---
 
-### US-3.2: Hunting Action [ ]
+### US-3.2: Hunting Action [x]
 
 **As a** player
 **I want** to hunt prey animals
@@ -332,11 +332,11 @@ Feature: Hunting
 
 #### Tasks
 
-- [ ] T-3.2.1: Define `Prey` entity type with position, species, nutritional value, state
-- [ ] T-3.2.2: Implement `attemptHunt(player, prey)` in `src/game/engine/actions.ts`
-- [ ] T-3.2.3: Add hunt success/failure logic based on distance, energy, and prey alertness
-- [ ] T-3.2.4: Implement `eat(player, prey)` — restore hunger by nutritional value
-- [ ] T-3.2.5: Write unit tests for hunt success, failure, and eating
+- [x] T-3.2.1: Define `Prey` entity type with position, species, nutritional value, state
+- [x] T-3.2.2: Implement `attemptHunt(playerPosition, playerEnergy, playerStealth, prey, roll?)` in `src/game/engine/actions.ts`
+- [x] T-3.2.3: Add hunt success/failure logic based on distance, energy, and prey alertness
+- [x] T-3.2.4: Implement `eat(player, prey)` — restore hunger by nutritional value
+- [x] T-3.2.5: Write unit tests for hunt success, failure, and eating
 
 ---
 
