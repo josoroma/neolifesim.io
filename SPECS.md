@@ -1,6 +1,6 @@
 # SPECS.md — NeoLifeSim
 
-> Version: 0.1.0 | Last updated: 2026-02-28
+> Version: 0.1.0 | Last updated: 2026-03-01
 
 ---
 
@@ -15,7 +15,7 @@
 
 | Epic | Stories | Todo | In Progress | Completed | Blocked |
 | --- | --- | --- | --- | --- | --- |
-| E1: Project Setup | 3 | 3 | 0 | 0 | 0 |
+| E1: Project Setup | 3 | 2 | 0 | 1 | 0 |
 | E2: Character Creation | 2 | 2 | 0 | 0 | 0 |
 | E3: Survival Engine | 4 | 4 | 0 | 0 | 0 |
 | E4: World & Day/Night Cycle | 3 | 3 | 0 | 0 | 0 |
@@ -30,7 +30,7 @@
 
 ## E1: Project Setup
 
-### US-1.1: Initialize Next.js Project with TypeScript [ ]
+### US-1.1: Initialize Next.js Project with TypeScript [x]
 
 **As a** developer
 **I want** a Next.js App Router project with TypeScript strict mode
@@ -57,10 +57,10 @@ Feature: Project Initialization
 
 #### Tasks
 
-- [ ] T-1.1.1: Initialize Next.js project with `create-next-app` (App Router, TypeScript)
-- [ ] T-1.1.2: Configure `tsconfig.json` with strict mode, no `any`, path aliases
-- [ ] T-1.1.3: Set up ESLint + Prettier with 2-space indentation
-- [ ] T-1.1.4: Create `app/page.tsx` (main menu placeholder) and `app/game/page.tsx` (game screen placeholder)
+- [x] T-1.1.1: Initialize Next.js project with `create-next-app` (App Router, TypeScript)
+- [x] T-1.1.2: Configure `tsconfig.json` with strict mode, no `any`, path aliases
+- [x] T-1.1.3: Set up ESLint + Prettier with 2-space indentation
+- [x] T-1.1.4: Create `app/page.tsx` (main menu placeholder) and `app/game/page.tsx` (game screen placeholder)
 
 ---
 

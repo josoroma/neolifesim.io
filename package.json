@@ -1,0 +1,35 @@
+{
+  "name": "neolifesim.io",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A snake survival simulation set in a tropical coastal forest ecosystem with a dynamic day/night cycle, built with Next.js and Phaser 3.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/josoroma/neolifesim.io.git"
+  },
+  "bugs": {
+    "url": "https://github.com/josoroma/neolifesim.io/issues"
+  },
+  "homepage": "https://github.com/josoroma/neolifesim.io#readme",
+  "dependencies": {
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "eslint-config-prettier": "^10",
+    "prettier": "^3",
+    "typescript": "^5"
+  }
+}
