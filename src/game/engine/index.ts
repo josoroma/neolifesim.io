@@ -5,8 +5,16 @@ export {
   SnakeSpecies,
   Gender,
   SPECIES_STATS,
+  NEEDS_DECAY_RATES,
+  NEEDS_HEALTH_DAMAGE,
+  NEEDS_WARNING_THRESHOLD,
+  LOW_ENERGY_SPEED_MULTIPLIER,
+  createNeeds,
   type SpeciesStats,
   type PlayerCharacter,
+  type Needs,
+  type NeedsTickResult,
+  type DeathCause,
 } from './types';
 
 export {
@@ -15,3 +23,5 @@ export {
   MAX_NAME_LENGTH,
   type ValidationResult,
 } from './character';
+
+export { tickNeeds } from './needs';

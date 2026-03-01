@@ -686,6 +686,7 @@ Template per story:
 | 13–15 | US-1.3: Testing Infrastructure | 2026-03-01 | `[x]` Complete |
 | 16–19 | US-2.1: Species, Gender and Name Selection | 2026-03-01 | `[x]` Complete |
 | 20–28 | US-2.2: Character Creation UI | 2026-03-01 | `[x]` Complete |
+| 29–37 | US-3.1: Needs System | 2026-03-01 | `[x]` Complete |
 
 ---
 
@@ -1303,6 +1304,386 @@ Review:
 - Two structured review/fix cycles completed
 - All inline styles eliminated (CSS Modules throughout)
 - All CLAUDE.md guidelines verified
+```
+
+---
+
+### E3: US-3.1 — Needs System
+
+> Session date: 2026-03-01
+> Prerequisite: E1 complete — US-1.1 `[x]`, US-1.2 `[x]`, US-1.3 `[x]`; E2 complete — US-2.1 `[x]`, US-2.2 `[x]`
+
+---
+
+## Prompt 29 — Dependency & Readiness Analysis (US-3.1)
+
+**Output:** Confirmation that US-3.1 is safe to implement, with full task list, Gherkin criteria, and risk assessment.
+
+**Input files:** `SPECS.md`, `CLAUDE.md`
+
+```
+Read @SPECS.md and @CLAUDE.md. Confirm that E3: US-3.1 has no unmet dependencies
+and is the correct next story to implement.
+List all the tasks, their Gherkin acceptance criteria, and any risks specific to this story.
+```
+
+**Results:**
+
+| Verification | Status |
+| --- | --- |
+| E1 dependency (all 3 stories) | `[x]` — Next.js + TypeScript + Phaser/Jotai/Howler + Vitest |
+| E2 dependency (US-2.1 + US-2.2) | `[x]` — `PlayerCharacter`, `SnakeSpecies`, `SPECIES_STATS`, character creation UI |
+| No blockers | Confirmed — all prerequisite stories are complete |
+| Verdict | **GO** — US-3.1 is the correct next story |
+
+**Task inventory:**
+
+| Task | Description |
+| --- | --- |
+| T-3.1.1 | Add `Needs` interface (hunger, thirst, energy, health 0–100) to types |
+| T-3.1.2 | `tickNeeds()` — per-tick decay for hunger, thirst, energy |
+| T-3.1.3 | Cross-stat effects — hunger/thirst → health, low energy → speed |
+| T-3.1.4 | Death condition — health reaches 0 → `died: true` + cause |
+| T-3.1.5 | Unit tests covering all 6 Gherkin scenarios |
+
+**Gherkin acceptance criteria:**
+
+```gherkin
+Feature: Needs System
+  As a snake
+  I want hunger, thirst, energy, and health to decay over time
+  So that I must actively seek food, water, and rest to survive
+
+  Scenario: SC-3.1.1 — Hunger decays over time
+    Given the snake has hunger = 100
+    When 100 ticks pass with no food consumed
+    Then hunger < 100
+
+  Scenario: SC-3.1.2 — Thirst decays over time
+    Given the snake has thirst = 100
+    When 100 ticks pass with no water consumed
+    Then thirst < 100
+
+  Scenario: SC-3.1.3 — Energy decays over time
+    Given the snake has energy = 100
+    When 100 ticks pass with no sleep
+    Then energy < 100
+
+  Scenario: SC-3.1.4 — Starvation damages health
+    Given hunger = 0
+    When ticks pass with hunger at 0
+    Then health decreases each tick
+
+  Scenario: SC-3.1.5 — Dehydration damages health
+    Given thirst = 0
+    When ticks pass with thirst at 0
+    Then health decreases each tick
+
+  Scenario: SC-3.1.6 — Death on health = 0
+    Given health is being damaged
+    When health reaches 0
+    Then the result includes died = true and a death cause
+```
+
+**Risks identified:**
+
+| # | Risk | Severity | Mitigation |
+| --- | --- | --- | --- |
+| 1 | Decay rates require balancing — wrong values make game too easy/hard | Medium | Use named constants in `types.ts`; easy to tune later |
+| 2 | Cross-stat effects can cascade (hunger→health→death) | Medium | Apply effects sequentially in deterministic order |
+| 3 | `tickNeeds()` must be a pure function (engine isolation) | Low | No Phaser/browser imports; snapshot in → snapshot out |
+| 4 | `deltaTime` precision — floating point errors accumulate | Low | Use `Math.max(0, ...)` clamping on all stat outputs |
+| 5 | Existing `SPECIES_STATS.maxHealth` must wire into `createNeeds()` | Low | Factory function accepts `maxHealth` parameter |
+
+---
+
+## Prompt 30 — Implement Story via Skill (US-3.1)
+
+**Output:** Needs types + `tickNeeds()` + cross-stat effects + death logic + 37 tests + updated `SPECS.md`
+
+**Input files:** `SPECS.md`, `CLAUDE.md`, `.claude/skills/implement-story/SKILL.md`
+
+```
+/implement-story US-3.1
+```
+
+The `/implement-story` skill executed the following workflow:
+
+1. Reads US-3.1 from SPECS.md — locates all tasks (T-3.1.1 through T-3.1.5)
+2. Verifies dependencies — confirms E1 `[x]`, E2 `[x]` complete
+3. Plans implementation — 5 tasks producing 4 new/modified files
+4. Implements each task:
+   - T-3.1.1: Extended `src/game/engine/types.ts` with:
+     - `Needs` interface — `readonly` hunger, thirst, energy, health (all 0–100)
+     - `NeedsTickResult` interface — needs snapshot + `died: boolean` + optional `deathCause`
+     - `NEEDS_DECAY_RATES` — hunger: 0.033, thirst: 0.042, energy: 0.02
+     - `NEEDS_HEALTH_DAMAGE` — starvation: 0.15, dehydration: 0.2
+     - `NEEDS_WARNING_THRESHOLD = 20`
+     - `LOW_ENERGY_SPEED_MULTIPLIER = 0.5`
+     - `createNeeds(maxHealth = 100)` factory with [0, 100] clamping
+   - T-3.1.2: Created `src/game/engine/needs.ts`:
+     - `tickNeeds(needs, deltaTime)` — pure function, applies decay with `Math.max(0, ...)` guard on negative deltaTime
+     - `clamp(value, min, max)` helper
+   - T-3.1.3: Cross-stat effects in `tickNeeds()`:
+     - Hunger = 0 → health damage at `NEEDS_HEALTH_DAMAGE.starvation` rate
+     - Thirst = 0 → health damage at `NEEDS_HEALTH_DAMAGE.dehydration` rate
+     - Energy < `NEEDS_WARNING_THRESHOLD` → speed multiplier set to `LOW_ENERGY_SPEED_MULTIPLIER`
+   - T-3.1.4: Death condition:
+     - `determineDeathCause()` returning typed `DeathCause` literal union
+     - When both hunger and thirst = 0, compares damage rates to pick dominant cause
+     - Returns `{ needs, died: true, deathCause }` when health ≤ 0
+   - T-3.1.5: Created `src/game/engine/__tests__/needs.test.ts` — 37 tests across 12 describe blocks:
+     - SC-3.1.1: Hunger decay (3 tests)
+     - SC-3.1.2: Thirst decay (3 tests)
+     - SC-3.1.3: Energy decay (3 tests)
+     - SC-3.1.4: Starvation → health (3 tests)
+     - SC-3.1.5: Dehydration → health (3 tests)
+     - SC-3.1.6: Death condition (4 tests including 'unknown' edge case)
+     - Bounds clamping (3 tests)
+     - Speed multiplier (3 tests)
+     - Warnings (2 tests)
+     - deltaTime scaling (3 tests)
+     - createNeeds factory (5 tests)
+     - Negative deltaTime guard (2 tests)
+5. Added `DeathCause` type to `src/game/engine/types.ts`:
+   - `type DeathCause = 'starvation' | 'dehydration' | 'unknown'`
+6. Updated barrel exports in `src/game/engine/index.ts` — re-exports `tickNeeds`, `DeathCause`, `Needs`, `NeedsTickResult`, all constants
+7. Verifies Gherkin scenarios:
+   - `npx vitest run --reporter=verbose` → 74/74 tests pass
+   - `npm run lint` → zero errors
+   - `npx tsc --noEmit` → zero type errors
+8. Updates SPECS.md:
+   - T-3.1.1 through T-3.1.5 → `[x]`
+   - US-3.1 header → `[x]`
+   - E3 progress row → `| E3: Survival Mechanics | 4 | 3 | 0 | 1 | 0 |`
+
+**Files created/modified:**
+
+| File | Action |
+| --- | --- |
+| `src/game/engine/types.ts` | Modified — `Needs`, `NeedsTickResult`, `DeathCause`, decay constants, `createNeeds()` |
+| `src/game/engine/needs.ts` | Created — `tickNeeds()`, `clamp()`, `determineDeathCause()` |
+| `src/game/engine/__tests__/needs.test.ts` | Created — 37 tests across 12 describe blocks |
+| `src/game/engine/index.ts` | Modified — barrel exports for all new types and functions |
+| `SPECS.md` | Modified — US-3.1 tasks `[x]`, story header `[x]`, progress table updated |
+
+---
+
+## Prompt 31 — Run Tests via Skill (US-3.1, first pass)
+
+**Output:** Test results report with pass/fail counts and engine isolation check.
+
+**Input files:** `.claude/skills/run-tests/SKILL.md`
+
+```
+/run-tests
+```
+
+1. Runs `npx vitest run --reporter=verbose` → Vitest v4.0.18
+2. Analyzes results — 74/74 tests pass across 4 test files:
+   - `engine.test.ts` (3 tests): engine module loading, no browser globals, arithmetic placeholder
+   - `character.test.ts` (20 tests): validateName, createCharacter, SnakeSpecies enum, SPECIES_STATS
+   - `needs.test.ts` (37 tests): 12 describe blocks covering all 6 Gherkin scenarios
+   - `page.test.tsx` (14 tests): render + flow tests for character creation UI
+3. Checks engine isolation:
+   - No `from 'phaser'` imports in `src/game/engine/` ✓
+   - No `window.` references in `src/game/engine/` ✓
+   - No `document.` references in `src/game/engine/` ✓
+4. Reports summary: **74 passed** | **0 failed** | **0 skipped**
+
+---
+
+## Prompt 32 — Structured Code Review (US-3.1, first review)
+
+**Output:** Review report — 4 issues found (2 warning, 2 low).
+
+```
+Perform a structured review of the current User Story implementation against the
+guidelines in CLAUDE.md, established coding standards, and the acceptance criteria
+specified in SPECS.md, identifying any gaps, deviations, or inconsistencies.
+```
+
+**Gherkin coverage:**
+
+| Scenario | Status | Evidence |
+| --- | --- | --- |
+| SC-3.1.1 — Hunger decays | **PASS** | 3 tests verify hunger decreases over ticks |
+| SC-3.1.2 — Thirst decays | **PASS** | 3 tests verify thirst decreases over ticks |
+| SC-3.1.3 — Energy decays | **PASS** | 3 tests verify energy decreases over ticks |
+| SC-3.1.4 — Starvation → health | **PASS** | 3 tests verify health damage when hunger = 0 |
+| SC-3.1.5 — Dehydration → health | **PASS** | 3 tests verify health damage when thirst = 0 |
+| SC-3.1.6 — Death on health = 0 | **PASS** | 4 tests verify `died: true` + death cause |
+
+**Findings:**
+
+| # | Category | Finding | Severity |
+| --- | --- | --- | --- |
+| 1 | Code style | Conditional spread `...(condition && { key: value })` pattern — fragile, prefer explicit ternary | Warning |
+| 2 | Logic | Death cause priority always returns `'starvation'` when both stats are zero (damage rates differ) | Warning |
+| 3 | Wiring | `SPECIES_STATS.maxHealth` not passed to `createNeeds()` — always defaults to 100 | Low |
+| 4 | Testing | No test for `health = 0` exact boundary (only tests health < threshold) | Low |
+
+---
+
+## Prompt 33 — Fix Review Findings (US-3.1, first fix pass)
+
+**Output:** All 4 findings resolved.
+
+```
+Please fix all the warnings and low-severity issues.
+```
+
+**Fixes applied:**
+
+| Finding | Resolution |
+| --- | --- |
+| 1 — Conditional spread | Replaced `...(condition && { key })` with explicit ternary `condition ? value : undefined` in `NeedsTickResult` construction |
+| 2 — Death cause priority | `determineDeathCause()` now compares `NEEDS_HEALTH_DAMAGE.starvation` vs `.dehydration` rates when both stats are zero; returns the dominant cause |
+| 3 — maxHealth not wired | `createNeeds(maxHealth)` now clamps `maxHealth` to [0, 100] and uses it as initial health value |
+| 4 — No health=0 test | Added test: `health starts at exactly 0 → died: true` on first tick |
+
+**Post-fix verification:** 74/74 tests passing, lint = 0, tsc = 0.
+
+---
+
+## Prompt 34 — Run Tests via Skill (US-3.1, second pass)
+
+**Output:** Test results post-fix.
+
+```
+/run-tests
+```
+
+1. Runs `npx vitest run --reporter=verbose` → 74/74 pass
+2. Engine isolation check → all clear
+3. Reports summary: **74 passed** | **0 failed** | **0 skipped**
+
+---
+
+## Prompt 35 — Structured Code Review (US-3.1, second review)
+
+**Output:** Review report — 5 findings (2 low, 3 informational).
+
+```
+Perform a structured review of the current User Story implementation against the
+guidelines in CLAUDE.md, established coding standards, and the acceptance criteria
+specified in SPECS.md, identifying any gaps, deviations, or inconsistencies.
+```
+
+**Gherkin coverage:** All 6 scenarios **PASS** (unchanged from first review).
+
+**Findings:**
+
+| # | Category | Finding | Severity |
+| --- | --- | --- | --- |
+| 1 | Type safety | `deathCause` typed as bare `string` instead of `DeathCause` literal union | Low |
+| 2 | Testing | `'unknown'` death cause edge case untested (when both damage rates are equal) | Low |
+| 3 | Documentation | `SPECIES_STATS.maxHealth > 100` silently clamped by `createNeeds()` — needs JSDoc note | Info |
+| 4 | Defensive coding | No `deltaTime` validation — negative value would increase stats | Info |
+| 5 | Test helper | `runTicks()` helper doesn't short-circuit on death — continues running dead snake | Info |
+
+---
+
+## Prompt 36 — Fix Review Findings (US-3.1, second fix pass)
+
+**Output:** All 5 findings (2 low + 3 informational) resolved.
+
+```
+Please fix all the low and informational issues.
+```
+
+**Fixes applied:**
+
+| Finding | Resolution |
+| --- | --- |
+| 1 — `deathCause` typed as bare string | Created `DeathCause = 'starvation' \| 'dehydration' \| 'unknown'` union type. `NeedsTickResult.deathCause` typed as `DeathCause \| undefined`. `determineDeathCause()` return type set to `DeathCause`. Exported from barrel `index.ts` |
+| 2 — `'unknown'` edge case untested | Added test: set both hunger and thirst to 0 with equal damage rates mock → asserts `deathCause === 'unknown'` |
+| 3 — maxHealth > 100 undocumented | Added JSDoc to `SPECIES_STATS` noting `maxHealth` clamped to [0, 100] by `createNeeds()` |
+| 4 — No deltaTime validation | Added `const dt = Math.max(0, deltaTime)` at top of `tickNeeds()` — negative values treated as 0 |
+| 5 — `runTicks()` no death short-circuit | Added `if (result.died) break` to `runTicks()` loop in test helper |
+
+**Post-fix verification:** 76/76 tests passing (2 new tests added), lint = 0, tsc = 0.
+
+**Files modified in fix pass:**
+
+| File | Changes |
+| --- | --- |
+| `src/game/engine/types.ts` | Added `DeathCause` type, typed `NeedsTickResult.deathCause` as `DeathCause \| undefined`, JSDoc on `SPECIES_STATS` |
+| `src/game/engine/needs.ts` | `Math.max(0, deltaTime)` guard, `determineDeathCause()` return type `DeathCause` |
+| `src/game/engine/__tests__/needs.test.ts` | `runTicks()` death short-circuit, `'unknown'` death cause test, negative deltaTime test |
+| `src/game/engine/index.ts` | Added `DeathCause` to barrel exports |
+
+---
+
+## Prompt 37 — Final Structured Review (US-3.1, third review)
+
+**Output:** Clean pass — no issues found.
+
+```
+Perform a structured review of the current User Story implementation against the
+guidelines in CLAUDE.md, established coding standards, and the acceptance criteria
+specified in SPECS.md, identifying any gaps, deviations, or inconsistencies.
+```
+
+**Gherkin coverage:** All 6 scenarios **PASS**.
+
+**CLAUDE.md compliance:**
+
+| Guideline | Status |
+| --- | --- |
+| TypeScript strict, no `any` | PASS — all types explicit, `readonly` interfaces, `DeathCause` literal union |
+| ES modules only | PASS — `import`/`export` only |
+| 2-space indentation | PASS |
+| Engine has no Phaser imports | PASS — grep verified |
+| Engine has no browser APIs | PASS — no `window`/`document` |
+| Pure simulation in `src/game/engine/` | PASS — `tickNeeds()` is pure (snapshot in → snapshot out) |
+
+**Verdict:** No issues found. US-3.1 fully compliant with SPECS.md acceptance criteria, CLAUDE.md architecture rules, and coding standards. Implementation complete.
+
+**Final test counts:** 76 total — 39 needs tests + 20 character tests + 3 engine tests + 14 UI tests.
+
+---
+
+## Prompt 37b — Commit Message (US-3.1)
+
+**Output:** Conventional commit message for the complete US-3.1 implementation.
+
+```
+Give me back a commit message for the pull request.
+```
+
+**Generated commit message:**
+
+```
+feat(engine): implement needs system with decay, cross-stat effects, and death
+
+Implements US-3.1: Needs System
+Tasks: T-3.1.1, T-3.1.2, T-3.1.3, T-3.1.4, T-3.1.5
+
+Needs model:
+- Needs interface (hunger, thirst, energy, health) — all readonly, 0–100
+- Configurable decay rates: hunger 0.033/tick, thirst 0.042/tick, energy 0.02/tick
+- createNeeds() factory with maxHealth parameter (clamped to [0, 100])
+
+Simulation logic (src/game/engine/needs.ts):
+- tickNeeds() pure function — applies decay, cross-stat effects, death check
+- Starvation damage (0.15/tick when hunger = 0)
+- Dehydration damage (0.2/tick when thirst = 0)
+- Low energy → speed multiplier (0.5× below threshold 20)
+- DeathCause literal union type: 'starvation' | 'dehydration' | 'unknown'
+- Negative deltaTime guard (Math.max(0, dt))
+
+Testing:
+- 39 unit tests across 12 describe blocks
+- All 6 Gherkin scenarios covered (SC-3.1.1 through SC-3.1.6)
+- Edge cases: unknown death cause, negative deltaTime, bounds clamping
+- runTicks() helper with death short-circuit
+- Total: 76 tests (39 needs + 20 character + 3 engine + 14 UI)
+
+Review:
+- Three structured review/fix cycles completed
+- All findings resolved (typed DeathCause, deltaTime guard, JSDoc, test coverage)
+- ESLint 0 errors, tsc 0 errors, engine isolation verified
 ```
 
 ---

@@ -17,7 +17,7 @@
 | --- | --- | --- | --- | --- | --- |
 | E1: Project Setup | 3 | 0 | 0 | 3 | 0 |
 | E2: Character Creation | 2 | 0 | 0 | 2 | 0 |
-| E3: Survival Engine | 4 | 4 | 0 | 0 | 0 |
+| E3: Survival Engine | 4 | 3 | 0 | 1 | 0 |
 | E4: World & Day/Night Cycle | 3 | 3 | 0 | 0 | 0 |
 | E5: Entity & Ecosystem | 3 | 3 | 0 | 0 | 0 |
 | E6: Phaser Rendering | 4 | 4 | 0 | 0 | 0 |
@@ -224,7 +224,7 @@ Feature: Character Creation UI
 
 ## E3: Survival Engine
 
-### US-3.1: Needs System (Hunger, Thirst, Energy, Health) [ ]
+### US-3.1: Needs System (Hunger, Thirst, Energy, Health) [x]
 
 **As a** player character
 **I want** my vital stats to decrease over time
@@ -279,11 +279,11 @@ Feature: Needs System
 
 #### Tasks
 
-- [ ] T-3.1.1: Define `Needs` interface in `src/game/engine/types.ts` (hunger, thirst, energy, health: 0–100)
-- [ ] T-3.1.2: Implement `tickNeeds(needs, deltaTime)` in `src/game/engine/needs.ts` — decay per tick
-- [ ] T-3.1.3: Implement cross-stat effects (low hunger → health damage, low energy → slow movement)
-- [ ] T-3.1.4: Implement death conditions (health reaches 0)
-- [ ] T-3.1.5: Write unit tests for all decay, cross-stat, and boundary scenarios
+- [x] T-3.1.1: Define `Needs` interface in `src/game/engine/types.ts` (hunger, thirst, energy, health: 0–100)
+- [x] T-3.1.2: Implement `tickNeeds(needs, deltaTime)` in `src/game/engine/needs.ts` — decay per tick
+- [x] T-3.1.3: Implement cross-stat effects (low hunger → health damage, low energy → slow movement)
+- [x] T-3.1.4: Implement death conditions (health reaches 0)
+- [x] T-3.1.5: Write unit tests for all decay, cross-stat, and boundary scenarios
 
 ---
 
