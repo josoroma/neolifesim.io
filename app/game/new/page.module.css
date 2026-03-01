@@ -1,0 +1,227 @@
+/* app/game/new/page.module.css — Character creation styles */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  gap: 2rem;
+}
+
+.title {
+  font-size: 1.75rem;
+  letter-spacing: 0.05em;
+}
+
+/* ---- Sections ---- */
+
+.section {
+  width: 100%;
+  max-width: 48rem;
+}
+
+.sectionHeading {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ---- Fieldset reset (for accessible grouping) ---- */
+
+.fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.legend {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ---- Species Cards Grid ---- */
+
+.speciesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1rem;
+}
+
+.speciesCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--foreground);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.speciesCard[data-selected='true'] {
+  background: var(--surface-selected);
+  border-color: var(--border-selected);
+}
+
+.speciesEmoji {
+  font-size: 2rem;
+}
+
+.speciesName {
+  font-weight: 700;
+}
+
+.speciesCommon {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.speciesDesc {
+  font-size: 0.75rem;
+  color: var(--text-dimmer);
+  margin-bottom: 0.25rem;
+}
+
+/* ---- Stat Bar ---- */
+
+.statRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.statLabel {
+  width: 4.5rem;
+  color: var(--text-muted);
+}
+
+.statTrack {
+  flex: 1;
+  height: 6px;
+  background: var(--stat-track);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.statFill {
+  height: 100%;
+  width: var(--fill-pct, 0%);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.statFill[data-level='high'] {
+  background: var(--stat-high);
+}
+
+.statFill[data-level='mid'] {
+  background: var(--stat-mid);
+}
+
+.statFill[data-level='low'] {
+  background: var(--stat-low);
+}
+
+.statValue {
+  width: 1.5rem;
+  text-align: right;
+  color: var(--text-subtle);
+}
+
+/* ---- Gender Selector ---- */
+
+.genderRow {
+  display: flex;
+  gap: 1rem;
+}
+
+.genderBtn {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--foreground);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 400;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.genderBtn[data-selected='true'] {
+  background: var(--surface-selected);
+  border-color: var(--border-selected);
+  font-weight: 700;
+}
+
+/* ---- Name Input ---- */
+
+.nameLabel {
+  display: block;
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-muted);
+}
+
+.nameInput {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--foreground);
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.nameInput[data-invalid='true'] {
+  border-color: var(--border-error);
+}
+
+.validationError {
+  color: var(--border-error);
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
+}
+
+.formError {
+  color: var(--border-error);
+  font-size: 0.9rem;
+}
+
+/* ---- Start Button ---- */
+
+.startBtn {
+  padding: 0.85rem 3rem;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  letter-spacing: 0.05em;
+}
+
+.startBtn:disabled {
+  background: var(--border);
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+/* ---- Back Link ---- */
+
+.backLink {
+  color: var(--text-disabled);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}

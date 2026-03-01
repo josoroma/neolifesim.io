@@ -16,7 +16,7 @@
 | Epic | Stories | Todo | In Progress | Completed | Blocked |
 | --- | --- | --- | --- | --- | --- |
 | E1: Project Setup | 3 | 0 | 0 | 3 | 0 |
-| E2: Character Creation | 2 | 1 | 0 | 1 | 0 |
+| E2: Character Creation | 2 | 0 | 0 | 2 | 0 |
 | E3: Survival Engine | 4 | 4 | 0 | 0 | 0 |
 | E4: World & Day/Night Cycle | 3 | 3 | 0 | 0 | 0 |
 | E5: Entity & Ecosystem | 3 | 3 | 0 | 0 | 0 |
@@ -188,7 +188,7 @@ Feature: Character Creation
 
 ---
 
-### US-2.2: Character Creation UI [ ]
+### US-2.2: Character Creation UI [x]
 
 **As a** player
 **I want** a visual character creation screen
@@ -214,11 +214,11 @@ Feature: Character Creation UI
 
 #### Tasks
 
-- [ ] T-2.2.1: Create character creation page component in `app/game/new/page.tsx`
-- [ ] T-2.2.2: Build species selector with visual cards for each snake type
-- [ ] T-2.2.3: Build gender selector (Male / Female)
-- [ ] T-2.2.4: Build name input with validation feedback
-- [ ] T-2.2.5: Wire "Start" button to initialize game state and navigate to `app/game/page.tsx`
+- [x] T-2.2.1: Create character creation page component in `app/game/new/page.tsx`
+- [x] T-2.2.2: Build species selector with visual cards for each snake type
+- [x] T-2.2.3: Build gender selector (Male / Female)
+- [x] T-2.2.4: Build name input with validation feedback
+- [x] T-2.2.5: Wire "Start" button to initialize game state and navigate to `app/game/page.tsx`
 
 ---
 

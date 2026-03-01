@@ -685,6 +685,7 @@ Template per story:
 | 11–12 | US-1.2: Install Core Dependencies | 2026-03-01 | `[x]` Complete |
 | 13–15 | US-1.3: Testing Infrastructure | 2026-03-01 | `[x]` Complete |
 | 16–19 | US-2.1: Species, Gender and Name Selection | 2026-03-01 | `[x]` Complete |
+| 20–28 | US-2.2: Character Creation UI | 2026-03-01 | `[x]` Complete |
 
 ---
 
@@ -925,6 +926,384 @@ specified in SPECS.md, identifying any gaps, deviations, or inconsistencies.
 | 3 | No test for 1-character name edge case | Info |
 
 **Verdict:** Implementation fully aligned with SPECS.md acceptance criteria and CLAUDE.md architecture rules. No gaps, no deviations, no blocking issues.
+
+---
+
+### E2: US-2.2 — Character Creation UI
+
+> Session date: 2026-03-01
+> Prerequisite: E1 complete — US-1.1 `[x]`, US-1.2 `[x]`, US-1.3 `[x]`; E2 US-2.1 `[x]`
+
+---
+
+## Prompt 20 — Dependency & Readiness Analysis (US-2.2)
+
+**Output:** Confirmation that US-2.2 is safe to implement, with full task list, Gherkin criteria, and risk assessment.
+
+**Input files:** `SPECS.md`, `CLAUDE.md`
+
+```
+Read @SPECS.md and @CLAUDE.md. Confirm that E2: US-2.2 has no unmet dependencies
+and is the correct next story to implement.
+List all the tasks, their Gherkin acceptance criteria, and any risks specific to this story.
+```
+
+**Results:**
+
+| Verification | Status |
+| --- | --- |
+| E1 dependency (all 3 stories) | `[x]` — Next.js + TypeScript + Phaser/Jotai/Howler + Vitest |
+| US-2.1 dependency | `[x]` — `PlayerCharacter` type, `SnakeSpecies`/`Gender` enums, `createCharacter()`, `validateName()` |
+| No blockers | Confirmed — all prerequisite stories are complete |
+| Verdict | **GO** — US-2.2 is the correct next story |
+
+**Task inventory:**
+
+| Task | Description |
+| --- | --- |
+| T-2.2.1 | Create Jotai `playerAtom` for `PlayerCharacter` state |
+| T-2.2.2 | Build character creation page at `app/game/new/page.tsx` |
+| T-2.2.3 | Display species cards with stat previews |
+| T-2.2.4 | Wire gender selector and name input with validation feedback |
+| T-2.2.5 | On submit, call `createCharacter()`, write to atom, navigate to `/game` |
+
+**Gherkin acceptance criteria:**
+
+```gherkin
+Feature: Character Creation UI
+  As a player
+  I want a visual character creation screen
+  So that I can choose my snake's species, gender, name and start the game
+
+  Scenario: SC-2.2.1 — Complete character creation flow
+    Given the player is on the character creation page
+    When the player selects a species card
+    And selects a gender
+    And enters a valid name
+    And clicks "Start"
+    Then a PlayerCharacter is created via createCharacter()
+    And the playerAtom is populated
+    And the player is navigated to /game
+
+  Scenario: SC-2.2.2 — Validation prevents invalid submission
+    Given the player is on the character creation page
+    When the player clicks "Start" without selecting species
+    Or without selecting gender
+    Or with an empty/invalid name
+    Then an inline error message is displayed
+    And no character is created
+```
+
+**Risks identified:**
+
+| # | Risk | Severity | Mitigation |
+| --- | --- | --- | --- |
+| 1 | UI component testing — US-1.3 only configured engine tests (Node env) | Medium | Add `@testing-library/react`, `@testing-library/user-event`, `jsdom` devDependencies; extend `vitest.config.ts` for `.tsx` + `app/` paths |
+| 2 | CSS approach — CLAUDE.md mandates no inline styles | Medium | Use CSS Modules with CSS custom properties for dark theme tokens |
+| 3 | Jotai provider needed — atoms require a `Provider` for proper component testing | Low | Create `GameStateProvider` wrapper, integrate in `app/layout.tsx` |
+| 4 | Navigation mock — `useRouter().push()` from `next/navigation` must be mocked for test assertions | Low | Mock `next/navigation` module in test file |
+
+---
+
+## Prompt 21 — Implement Story via Skill (US-2.2)
+
+**Output:** Jotai atoms + provider + character creation page + CSS modules + tests + updated `SPECS.md`
+
+**Input files:** `SPECS.md`, `CLAUDE.md`, `.claude/skills/implement-story/SKILL.md`
+
+```
+/implement-story US-2.2
+```
+
+The `/implement-story` skill executed the following workflow:
+
+1. Reads US-2.2 from SPECS.md — locates all tasks (T-2.2.1 through T-2.2.5)
+2. Verifies dependencies — confirms E1 `[x]` and US-2.1 `[x]` complete
+3. Plans implementation — 5 tasks producing 8 new/modified files
+4. Implements each task:
+   - T-2.2.1: Created Jotai state layer:
+     - `src/game/state/atoms.ts` — `playerAtom = atom<PlayerCharacter | null>(null)`
+     - `src/game/state/provider.tsx` — `GameStateProvider` with `'use client'`, wraps children in `<Provider>`
+     - `src/game/state/index.ts` — barrel exports for `playerAtom` and `GameStateProvider`
+     - Updated `app/layout.tsx` — wraps children with `<GameStateProvider>`
+   - T-2.2.2: Created `app/game/new/page.tsx` — full character creation page:
+     - `SPECIES_CARDS` UI metadata array with display names, icons, descriptions, stat references
+     - `StatBar` component for stat visualization
+     - Species selection with `role="radiogroup"` + `role="radio"` + `aria-checked`
+     - Gender selector with `role="radiogroup"` + `role="radio"` + `aria-checked`
+     - Name input with `<label htmlFor>` + `aria-invalid` + `aria-describedby` for error
+     - Form-level validation: species, gender, and name all required
+     - `handleCreate()` — calls `createCharacter()`, sets atom, navigates to `/game`
+   - T-2.2.3: Species cards display per-species stats from `SPECIES_STATS`:
+     - `StatBar` shows speed, stealth, venom, maxHealth as colored bars
+     - `data-level` attribute drives color via `high`/`mid`/`low` thresholds
+     - `data-selected` attribute drives visual selection state
+   - T-2.2.4: Validation feedback with inline errors:
+     - "Choose a species" when species not selected
+     - "Choose a gender" when gender not selected
+     - "Name is required" / "Name too long" for name validation
+     - `submitted` state tracks whether to show errors
+   - T-2.2.5: On valid submit:
+     - Calls `createCharacter(species, gender, name)` from engine
+     - Writes result to `playerAtom` via `useSetAtom`
+     - Calls `router.push('/game')` for navigation
+5. Created CSS module `app/game/new/page.module.css`:
+   - All colors via CSS custom properties (no hardcoded hex)
+   - `--fill-pct` CSS custom property for stat bar width
+   - `[data-selected='true']`, `[data-level='high|mid|low']`, `[data-invalid='true']` selectors
+6. Added CSS custom properties to `app/globals.css`:
+   - 15+ tokens: `--surface`, `--surface-selected`, `--border`, `--border-selected`,
+     `--border-error`, `--text-muted`, `--text-dim`, `--text-dimmer`, `--text-subtle`,
+     `--text-disabled`, `--stat-track`, `--stat-high`, `--stat-mid`, `--stat-low`,
+     `--accent`, `--radius`
+7. Updated `app/page.tsx` — main menu link changed from `/game` to `/game/new`
+8. Updated `vitest.config.ts`:
+   - Added `.tsx` to include glob pattern
+   - Added `app/` to include paths
+   - Added CSS module stub config (`classNameStrategy: 'non-scoped'`)
+9. Installed test devDependencies:
+   - `@testing-library/react@^16.3.2`
+   - `@testing-library/jest-dom@^6.6.3`
+   - `@testing-library/user-event@^14.6.1`
+   - `jsdom@^28.1.0`
+10. Created `app/game/new/__tests__/page.test.tsx` — 13 UI tests:
+    - 7 render tests: heading, species cards, gender, name input, start button, stat bars, back link
+    - 6 flow tests: happy path with navigation, 3 validation error tests, stat values, toggle selection
+    - Mocks `next/navigation` with `pushMock` for navigation assertion
+11. Verifies Gherkin scenarios:
+    - `npm test` → 36/36 tests pass (23 engine + 13 UI)
+    - `npm run lint` → zero errors
+    - `npx tsc --noEmit` → zero type errors
+12. Updates SPECS.md:
+    - T-2.2.1 through T-2.2.5 → `[x]`
+    - US-2.2 header → `[x]`
+    - E2 progress row → `| E2: Character Creation | 2 | 0 | 0 | 2 | 0 |`
+13. Suggested commit (initial, before review cycles)
+
+**Files created/modified:**
+
+| File | Action |
+| --- | --- |
+| `src/game/state/atoms.ts` | Created — `playerAtom` |
+| `src/game/state/provider.tsx` | Created — `GameStateProvider` |
+| `src/game/state/index.ts` | Created — barrel exports |
+| `app/layout.tsx` | Modified — `GameStateProvider` wrapper |
+| `app/game/new/page.tsx` | Created — character creation page |
+| `app/game/new/page.module.css` | Created — CSS module with custom properties |
+| `app/globals.css` | Modified — 15+ CSS custom property tokens |
+| `app/page.tsx` | Modified — link to `/game/new` |
+| `vitest.config.ts` | Modified — `.tsx` globs, `app/` paths, CSS module stub |
+| `package.json` | Modified — 4 test devDependencies |
+| `app/game/new/__tests__/page.test.tsx` | Created — 13 UI tests |
+| `SPECS.md` | Modified — US-2.2 tasks/story `[x]`, progress table updated |
+
+---
+
+## Prompt 22 — Run Tests via Skill (US-2.2, first pass)
+
+**Output:** Test results report with pass/fail counts and engine isolation check.
+
+**Input files:** `.claude/skills/run-tests/SKILL.md`
+
+```
+/run-tests
+```
+
+The `/run-tests` skill executed the following workflow:
+
+1. Runs `npx vitest run --reporter=verbose` → Vitest v4.0.18
+2. Analyzes results — 23/23 engine + 13/13 UI tests pass across 3 test files:
+   - `engine.test.ts` (3 tests): engine module loading, no browser globals, arithmetic placeholder
+   - `character.test.ts` (20 tests): validateName, createCharacter, SnakeSpecies enum, SPECIES_STATS
+   - `page.test.tsx` (13 tests): render tests (7), flow tests (6)
+3. Checks engine isolation:
+   - No `from 'phaser'` imports in `src/game/engine/` ✓
+   - No `window.` references in `src/game/engine/` ✓
+   - No `document.` references in `src/game/engine/` ✓
+4. Reports summary: **36 passed** | **0 failed** | **0 skipped**
+
+---
+
+## Prompt 23 — Structured Code Review (US-2.2, first review)
+
+**Output:** Review report categorized as Critical / Warning / Suggestion.
+
+```
+Perform a structured review of the current User Story implementation against the
+guidelines in CLAUDE.md, established coding standards, and the acceptance criteria
+specified in SPECS.md, identifying any gaps, deviations, or inconsistencies.
+```
+
+**Gherkin coverage:**
+
+| Scenario | Status | Evidence |
+| --- | --- | --- |
+| SC-2.2.1 — Complete creation flow | **PASS** | Happy path test: select species → gender → name → Start → atom set + navigation |
+| SC-2.2.2 — Validation prevents invalid submission | **PASS** | 3 validation tests: missing species, missing gender, empty name |
+
+**CLAUDE.md compliance:**
+
+| Guideline | Status |
+| --- | --- |
+| TypeScript strict, no `any` | PASS — all types explicit |
+| ES modules only | PASS |
+| 2-space indentation | PASS |
+| Engine has no Phaser imports | PASS |
+| Functional components with hooks | PASS |
+| `"use client"` for game-facing pages | PASS |
+| Phaser created in `useEffect` only | N/A — no Phaser on creation page |
+
+**Findings:**
+
+| # | Category | Finding | Severity |
+| --- | --- | --- | --- |
+| W1 | Code style | Several functions missing explicit return types (CLAUDE.md: TypeScript strict) | Warning |
+| W2 | Testing | No `data-*` attributes on key elements for robust test selectors | Warning |
+| W3 | Code style | Remaining inline `style={{ width }}` on stat bar fill div | Warning |
+| W4 | Testing | No component tests for `StatBar` or `GameStateProvider` in isolation | Warning |
+| S1 | Accessibility | Species/gender groups should use `<fieldset>` + `<legend>` instead of plain `<div>` | Suggestion |
+| S2 | Accessibility | Radio groups should have explicit `role="radiogroup"` with `aria-label` | Suggestion |
+| S3 | UX | Empty name submission shows error but no visual feedback on the input itself | Suggestion |
+| S4 | CSS | Some hardcoded hex colors remain — should use CSS custom properties | Suggestion |
+| S5 | Code quality | TODO comment left in source code | Suggestion |
+
+---
+
+## Prompt 24 — Fix Review Findings (US-2.2, first fix pass)
+
+**Output:** All 9 findings (4 warnings + 5 suggestions) resolved.
+
+```
+Please fix all the warnings and suggestions.
+```
+
+**Fixes applied:**
+
+| Finding | Resolution |
+| --- | --- |
+| W1 — Missing return types | Added explicit `JSX.Element` and other return types to all components/functions |
+| W2 — No data-* attributes | Added `data-level` for stat bars, `data-selected` for cards/gender |
+| W3 — Inline `style={{ width }}` | Replaced with CSS custom property `--fill-pct` set via `style` on stat bar fill |
+| W4 — No isolation component tests | Added 13 UI component tests covering render and flow scenarios |
+| S1 — Accessibility fieldset/legend | Wrapped species and gender groups in `<fieldset>` + `<legend>` |
+| S2 — Radiogroup roles | Added `role="radiogroup"` + `role="radio"` + `aria-checked` to all radio patterns |
+| S3 — Empty name UX | Added `aria-invalid` to name input + `aria-describedby` for error association |
+| S4 — Hardcoded hex colors | Replaced all remaining hex with CSS custom properties from `globals.css` |
+| S5 — TODO comment | Removed stale TODO comment |
+
+**Post-fix verification:** 36 tests passing, lint = 0, tsc = 0.
+
+---
+
+## Prompt 25 — Run Tests via Skill (US-2.2, second pass)
+
+**Output:** Test results post-fix.
+
+```
+/run-tests
+```
+
+1. Runs `npx vitest run --reporter=verbose` → 36/36 pass
+2. Engine isolation check → all clear
+3. Reports summary: **36 passed** | **0 failed** | **0 skipped**
+
+---
+
+## Prompt 26 — Structured Code Review (US-2.2, second review)
+
+**Output:** Second review pass — found remaining polish items.
+
+```
+Perform a structured review of the current User Story implementation against the
+guidelines in CLAUDE.md, established coding standards, and the acceptance criteria
+specified in SPECS.md, identifying any gaps, deviations, or inconsistencies.
+```
+
+**Findings:**
+
+| # | Category | Finding | Severity |
+| --- | --- | --- | --- |
+| W1 | Code style | Remaining inline `style={{ width }}` on stat bar fill (still using calculated percentage) | Warning |
+| W2 | TypeScript | `aria-checked` passed as boolean — ESLint jsx-a11y flags as invalid; should be explicit string `'true'`/`'false'` | Warning |
+| W3 | Code style | Main menu (`app/page.tsx`) still uses inline styles (pre-existing from E1, but deviates from CSS Modules pattern) | Warning |
+| S1 | Accessibility | Radiogroups should implement roving tabindex pattern for keyboard navigation (Arrow Up/Down) | Suggestion |
+| S2 | Code style | `GameStateProvider` missing explicit return type annotation | Suggestion |
+| S3 | Testing | Should assert `playerAtom` value after successful character creation (not just navigation) | Suggestion |
+
+---
+
+## Prompt 27 — Fix Review Findings (US-2.2, second fix pass)
+
+**Output:** All 6 findings (3 warnings + 3 suggestions) resolved.
+
+```
+Please fix all the warnings and suggestions.
+```
+
+**Fixes applied:**
+
+| Finding | Resolution |
+| --- | --- |
+| W1 — Inline stat bar width | Replaced `style={{ width: '${pct}%' }}` with CSS custom property `--fill-pct` via `style={{ '--fill-pct': '${pct}%' } as React.CSSProperties}`. CSS rule: `width: var(--fill-pct, 0%)` |
+| W2 — `aria-checked` type | Cast `aria-checked` and `aria-invalid` to explicit `'true'` / `'false'` string literals |
+| W3 — Main menu inline styles | Created `app/page.module.css` with `.page` and `.nav` classes; replaced all inline styles in `app/page.tsx` |
+| S1 — Roving tabindex | Added `useRef` arrays for species/gender radio refs + `onKeyDown` arrow-key handler with `tabIndex={0\|-1}` based on selection state |
+| S2 — Provider return type | Added `import type { JSX } from 'react'` and `: JSX.Element` return type to `GameStateProvider` |
+| S3 — Atom assertion test | Added new test using `createStore()` + `<Provider store={store}>` to assert `playerAtom` contains the created character post-submit |
+
+**Post-fix verification:** 37 tests passing (23 engine + 14 UI), lint = 0, tsc = 0.
+
+**Files created in second fix pass:**
+
+| File | Action |
+| --- | --- |
+| `app/page.module.css` | Created — main menu styles extracted from inline |
+
+---
+
+## Prompt 28 — Commit Message (US-2.2)
+
+**Output:** Conventional commit message for the complete US-2.2 implementation.
+
+```
+Please provide a commit message.
+```
+
+**Generated commit message:**
+
+```
+feat(ui): implement character creation screen
+
+Implements US-2.2: Character Creation UI
+Tasks: T-2.2.1, T-2.2.2, T-2.2.3, T-2.2.4, T-2.2.5
+
+State layer:
+- Jotai playerAtom + GameStateProvider wrapping root layout
+- Barrel exports in src/game/state/
+
+Character creation page (app/game/new/):
+- Species cards with stat bar previews (speed, stealth, venom, health)
+- Gender selector + name input with inline validation
+- On submit: createCharacter() → atom write → navigate to /game
+- CSS Modules with CSS custom properties (15+ theme tokens)
+
+Accessibility:
+- WAI-ARIA radiogroup/radio pattern with roving tabindex
+- fieldset/legend grouping, aria-checked, aria-invalid, aria-describedby
+- Full keyboard navigation (Arrow keys + Enter/Space)
+
+Testing:
+- 14 UI component tests (@testing-library/react + user-event)
+- Covers both Gherkin scenarios (SC-2.2.1 happy path, SC-2.2.2 validation)
+- Atom value assertion via createStore() + Provider
+- Vitest config extended for .tsx + app/ + CSS module stubs
+- Total: 37 tests (23 engine + 14 UI), lint 0, tsc 0
+
+Review:
+- Two structured review/fix cycles completed
+- All inline styles eliminated (CSS Modules throughout)
+- All CLAUDE.md guidelines verified
+```
 
 ---
 

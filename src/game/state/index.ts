@@ -1,2 +1,4 @@
 // src/game/state — Jotai atoms + persistence layer.
-export {};
+
+export { playerAtom } from './atoms';
+export { GameStateProvider } from './provider';

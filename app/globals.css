@@ -1,6 +1,24 @@
 :root {
   --background: #0a0a0a;
   --foreground: #ededed;
+
+  /* ---- Dark-theme palette (shared across game UI) ---- */
+  --surface: #151525;
+  --surface-selected: #1e3a2f;
+  --border: #333;
+  --border-selected: #4ade80;
+  --border-error: #f87171;
+  --text-muted: #aaa;
+  --text-dim: #888;
+  --text-dimmer: #999;
+  --text-subtle: #ccc;
+  --text-disabled: #666;
+  --stat-track: #2a2a3e;
+  --stat-high: #4ade80;
+  --stat-mid: #facc15;
+  --stat-low: #f87171;
+  --accent: #16a34a;
+  --radius: 0.75rem;
 }
 
 html,
