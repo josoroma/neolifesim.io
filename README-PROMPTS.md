@@ -288,9 +288,375 @@ Format: Sequential numbered prompts with input/output metadata and fenced code b
 
 ---
 
+## Phase 2 — Implementation Prompts
+
+> Prompts for validating, implementing, and verifying user stories.
+> Start after Phase 1 completes (Prompts 1–7). Follow in order per story.
+
+---
+
+## Prompt 8 — Dependency & Readiness Analysis
+
+**Output:** Confirmation that a story is safe to implement, with full task list, Gherkin criteria, and risk assessment.
+
+**Input files:** `SPECS.md`, `CLAUDE.md`
+
+```
+Role: Senior project analyst.
+
+Task: Read SPECS.md and CLAUDE.md. Confirm that E1: US-1.1 has no unmet dependencies
+and is the correct next story to implement. List all the tasks, their Gherkin acceptance
+criteria, and any risks specific to this story.
+
+Deliverable:
+1. Dependency verification — confirm no prerequisite stories are incomplete
+2. Task inventory — list every T-x.y.z with its description
+3. Gherkin acceptance criteria — full Given/When/Then scenarios
+4. Risk assessment — table with severity and mitigation for each identified risk
+5. Verdict — clear go/no-go recommendation
+
+Constraints:
+- Cross-check the progress summary table (all stories at [ ] Todo = US-1.1 is root)
+- Verify the workspace has no existing package.json or source files (greenfield)
+- Identify risks specific to scaffolding into an existing git repo
+- Flag any CLAUDE.md rules that apply to this story's tasks
+```
+
+---
+
+## Prompt 9 — Implement Story via Skill
+
+**Output:** Implemented source files + updated `SPECS.md`
+
+**Input files:** `SPECS.md`, `CLAUDE.md`, `.claude/skills/implement-story/SKILL.md`
+
+```
+/implement-story US-1.1
+```
+
+The `/implement-story` skill executes the following workflow automatically:
+
+1. Reads US-1.1 from SPECS.md — locates all tasks (T-1.1.1 through T-1.1.4)
+2. Verifies dependencies — confirms no prerequisite stories are incomplete
+3. Plans implementation — identifies files to create/modify respecting architecture separation
+4. Implements each task:
+   - T-1.1.1: Scaffold Next.js project (App Router, TypeScript) — manual scaffold
+     to preserve existing `.git/` and Markdown files
+   - T-1.1.2: Configure `tsconfig.json` with `strict: true`, `noUncheckedIndexedAccess: true`,
+     path alias `@/*` → `./src/*`
+   - T-1.1.3: Set up ESLint 9 flat config + `eslint-config-prettier` + `.prettierrc`
+     (2-space indent, semicolons, double quotes)
+   - T-1.1.4: Create `app/page.tsx` (main menu placeholder) and `app/game/page.tsx`
+     (game screen placeholder with `"use client"` per CLAUDE.md)
+5. Verifies Gherkin scenarios:
+   - `npm run dev` → dev server starts, HTTP 200 on `/` and `/game`
+   - `npm run lint` → zero errors
+   - `npx tsc --noEmit` → zero type errors
+6. Updates SPECS.md — marks T-1.1.1 through T-1.1.4 as `[x]`, updates story header
+   and progress summary table
+7. Suggests conventional commit message
+
+---
+
+## Prompt 10 — Run Tests via Skill
+
+**Output:** Test results report with pass/fail counts and engine isolation check.
+
+**Input files:** `.claude/skills/run-tests/SKILL.md`
+
+```
+/run-tests
+```
+
+The `/run-tests` skill executes the following workflow:
+
+1. Checks for a configured test runner (`npm test` script in `package.json`)
+2. Runs the test suite (or reports if no test runner exists yet)
+3. Analyzes results — for each failure: file, expected vs actual, root cause, suggested fix
+4. Checks engine isolation:
+   - No `from 'phaser'` imports in `src/game/engine/`
+   - No `window.` or `document.` references in `src/game/engine/`
+5. Reports summary: passed / failed / skipped counts
+
+**Note:** For US-1.1, this correctly reports that no test runner is configured yet —
+US-1.3 (Testing Infrastructure) is the story that adds Vitest/Jest. This validates
+that the skill gracefully handles the pre-test-infrastructure state.
+
+---
+
+### US-1.2: Install Core Dependencies
+
+> Session date: 2026-03-01
+> Prerequisite: US-1.1 `[x]` complete
+
+---
+
+## Prompt 11 — Dependency & Readiness Analysis (US-1.2)
+
+**Output:** Confirmation that US-1.2 is safe to implement, with full task list, Gherkin criteria, and risk assessment.
+
+**Input files:** `SPECS.md`, `CLAUDE.md`
+
+```
+Role: Senior project analyst.
+
+Task: Read SPECS.md and CLAUDE.md. Confirm that E1: US-1.2 has no unmet dependencies
+and is the correct next story to implement. List all the tasks, their Gherkin acceptance
+criteria, and any risks specific to this story.
+
+Deliverable:
+1. Dependency verification — confirm US-1.1 is complete (Next.js + TypeScript + ESLint)
+2. Task inventory — list T-1.2.1, T-1.2.2, T-1.2.3 with descriptions
+3. Gherkin acceptance criteria — full Given/When/Then scenarios
+4. Risk assessment — table with severity and mitigation for each identified risk
+5. Verdict — clear go/no-go recommendation
+
+Constraints:
+- Cross-check the progress summary table (US-1.1 at [x] = US-1.2 is unblocked)
+- Verify the workspace has package.json with Next.js, TypeScript, ESLint configured
+- Identify risks specific to Phaser SSR, Howler types, and bundle size
+- Flag CLAUDE.md rules that apply: Phaser-in-Next.js integration, architecture separation
+```
+
+**Results:**
+
+| Verification | Status |
+| --- | --- |
+| US-1.1 dependency | `[x]` — Next.js 16.1.6, TS strict, ESLint + Prettier, app/page.tsx + app/game/page.tsx |
+| No blockers | Confirmed — no external dependencies or blocked stories |
+| Verdict | **GO** — US-1.2 is the correct next story |
+
+**Risks identified:**
+
+| # | Risk | Likelihood | Impact | Mitigation |
+| --- | --- | --- | --- | --- |
+| 1 | Phaser SSR crash — accesses `window`/`document` at import time | High | Blocks build | Dynamic `import("phaser")` inside `useEffect` only; never top-level in server components |
+| 2 | Phaser type conflicts — ships own types, may conflict | Medium | Type errors | Pin version, verify `tsc --noEmit` passes after install |
+| 3 | Howler.js types — `@types/howler` is community-maintained | Low | Missing types | Install `@types/howler`, verify compilation |
+| 4 | Bundle size — Phaser is ~1 MB minified | Low | Performance | Dynamic import ensures Phaser only loads on game page |
+| 5 | Empty git directories — `src/game/` dirs ignored by git | Low | Missing dirs | Add barrel `index.ts` files in each subdirectory |
+
+---
+
+## Prompt 12 — Implement Story via Skill (US-1.2)
+
+**Output:** Installed dependencies + `app/game/page.tsx` updated + `src/game/` folder structure + updated `SPECS.md`
+
+**Input files:** `SPECS.md`, `CLAUDE.md`, `.claude/skills/implement-story/SKILL.md`
+
+```
+/implement-story US-1.2
+```
+
+The `/implement-story` skill executed the following workflow:
+
+1. Reads US-1.2 from SPECS.md — locates all tasks (T-1.2.1 through T-1.2.3)
+2. Verifies dependencies — confirms US-1.1 `[x]` complete
+3. Plans implementation — 3 tasks, respecting CLAUDE.md architecture separation
+4. Implements each task:
+   - T-1.2.1: `npm install phaser jotai howler` + `npm install -D @types/howler`
+     - phaser@^3.90.0, jotai@^2.18.0, howler@^2.2.4, @types/howler@^2.2.12
+   - T-1.2.2: Updated `app/game/page.tsx` with:
+     - Dynamic `import("phaser")` inside `useEffect` (SSR-safe per CLAUDE.md)
+     - `useRef<Phaser.Game | null>` for instance tracking
+     - Cleanup `destroy(true)` in useEffect return + cancelled flag for race conditions
+     - Minimal placeholder scene with "Phaser Loaded ✓" text to verify initialization
+   - T-1.2.3: Created `src/game/` folder structure with barrel `index.ts` files:
+     - `src/game/engine/index.ts` — "NO Phaser imports allowed" comment
+     - `src/game/render/index.ts` — "NO game logic" comment
+     - `src/game/state/index.ts` — Jotai atoms + persistence
+     - `src/game/save/index.ts` — Serialize/deserialize + schema versioning
+5. Verifies Gherkin scenarios:
+   - `npx tsc --noEmit` → zero type errors (all packages importable)
+   - `npm run lint` → zero lint errors
+   - `npm run build` → `next build` succeeds, all 3 routes static, no SSR crash
+6. Updates SPECS.md:
+   - T-1.2.1, T-1.2.2, T-1.2.3 → `[x]`
+   - US-1.2 header → `[x]`
+   - E1 progress row → `| E1: Project Setup | 3 | 1 | 0 | 2 | 0 |`
+7. Suggested commit:
+   ```
+   feat(setup): install core dependencies (Phaser, Jotai, Howler)
+
+   Implements US-1.2: Install Core Dependencies
+   Tasks: T-1.2.1, T-1.2.2, T-1.2.3
+
+   - Add phaser@3.90, jotai@2.18, howler@2.2 + @types/howler
+   - Dynamic Phaser import in app/game/page.tsx (SSR-safe)
+   - Create src/game/{engine,render,state,save}/ folder structure
+   ```
+
+**Note:** No `/run-tests` prompt was executed for US-1.2 because the test runner
+is not configured yet — that is US-1.3 (Testing Infrastructure). Build verification
+(`next build`) served as the primary validation for this story's Gherkin scenarios.
+
+---
+
+### US-1.3: Testing Infrastructure
+
+> Session date: 2026-03-01
+> Prerequisite: US-1.1 `[x]` complete, US-1.2 `[x]` complete
+
+---
+
+## Prompt 13 — Dependency & Readiness Analysis (US-1.3)
+
+**Output:** Confirmation that US-1.3 is safe to implement, with full task list, Gherkin criteria, and risk assessment.
+
+**Input files:** `SPECS.md`, `CLAUDE.md`
+
+```
+Role: Senior project analyst.
+
+Task: Read SPECS.md and CLAUDE.md. Confirm that E1: US-1.3 has no unmet dependencies
+and is the correct next story to implement. List all the tasks, their Gherkin acceptance
+criteria, and any risks specific to this story.
+```
+
+**Results:**
+
+| Verification | Status |
+| --- | --- |
+| US-1.1 dependency | `[x]` — Next.js project with TypeScript strict mode |
+| US-1.2 dependency | `[x]` — Phaser, Jotai, Howler installed; `src/game/` folder structure created |
+| No blockers | Confirmed — US-1.3 is the last story in E1, all prerequisites met |
+| Verdict | **GO** — US-1.3 is the correct next story |
+
+**Task inventory:**
+
+| Task | Description |
+| --- | --- |
+| T-1.3.1 | Configure test runner (Vitest or Jest) with TypeScript support |
+| T-1.3.2 | Add `npm test` and `npm test -- --grep` scripts to `package.json` |
+| T-1.3.3 | Create a sample engine test to validate the setup |
+
+**Gherkin acceptance criteria:**
+
+```gherkin
+Feature: Testing Infrastructure
+  As a developer
+  I want a test runner configured for the engine
+  So that simulation logic can be tested independently
+
+  Scenario: Run tests successfully
+    Given the test runner is configured
+    And a sample test exists in src/game/engine/
+    When I run "npm test"
+    Then the test suite passes
+
+  Scenario: Test engine logic without Phaser
+    Given the engine module has no Phaser imports
+    When I run engine tests
+    Then no DOM or canvas errors occur
+```
+
+**Risks identified:**
+
+| # | Risk | Severity | Mitigation |
+| --- | --- | --- | --- |
+| 1 | Vitest vs Jest choice — CLAUDE.md mentions both; Vitest natively supports ESM + TS, Jest requires transforms | Medium | Use Vitest — aligns with ESM-only mandate, zero-config TypeScript |
+| 2 | Phaser leaking into engine tests — any accidental import causes `ReferenceError: window is not defined` | Low | Architecture enforces separation; sample test validates Node-only environment |
+| 3 | Next.js / React interference — component imports would need jsdom env | Low | US-1.3 scopes tests to `src/game/engine/` only (pure logic) |
+| 4 | `npm test -- --grep` compatibility — Vitest uses `-t` for name filtering, not `--grep` | Low | Vitest accepts `-t "name"` for filtering; `npm test -- -t "name"` works |
+
+---
+
+## Prompt 14 — Implement Story via Skill (US-1.3)
+
+**Output:** Vitest configured + test scripts + sample engine test + updated `SPECS.md`
+
+**Input files:** `SPECS.md`, `CLAUDE.md`, `.claude/skills/implement-story/SKILL.md`
+
+```
+/implement-story US-1.3
+```
+
+The `/implement-story` skill executed the following workflow:
+
+1. Reads US-1.3 from SPECS.md — locates all tasks (T-1.3.1 through T-1.3.3)
+2. Verifies dependencies — confirms US-1.1 `[x]` and US-1.2 `[x]` complete
+3. Plans implementation — 3 tasks, 3 files to create/modify
+4. Implements each task:
+   - T-1.3.1: Installed `vitest@^4.0.18` as devDependency; created `vitest.config.ts` with:
+     - `environment: 'node'` — engine tests must not depend on DOM/canvas
+     - `include: ['src/**/__tests__/**/*.test.ts']` — test file glob pattern
+     - `alias: { '@': './src' }` — path alias matching `tsconfig.json`
+   - T-1.3.2: Added scripts to `package.json`:
+     - `"test": "vitest run"` — single run for CI
+     - `"test:watch": "vitest"` — watch mode for development
+     - Filtering: `npm test -- -t "name"` (Vitest equivalent of `--grep`)
+   - T-1.3.3: Created `src/game/engine/__tests__/engine.test.ts` with 3 tests:
+     - `loads without errors in a Node environment` — dynamic import of engine module
+     - `does not depend on browser globals` — asserts `window` and `document` are undefined
+     - `supports basic arithmetic (placeholder)` — validates TypeScript + test runner work
+5. Verifies Gherkin scenarios:
+   - `npm test` → exits 0, 3/3 tests pass (87ms total)
+   - `npm test -- -t "arithmetic"` → 1 passed, 2 skipped (filtering works)
+   - `npm run lint` → zero errors
+   - `npx tsc --noEmit` → zero type errors
+   - Engine isolation check → no Phaser imports, no `window`/`document` refs
+6. Updates SPECS.md:
+   - T-1.3.1, T-1.3.2, T-1.3.3 → `[x]`
+   - US-1.3 header → `[x]`
+   - E1 progress row → `| E1: Project Setup | 3 | 0 | 0 | 3 | 0 |`
+7. Suggested commit:
+   ```
+   feat(test): configure Vitest testing infrastructure
+
+   Implements US-1.3: Testing Infrastructure
+   Tasks: T-1.3.1, T-1.3.2, T-1.3.3
+
+   - Vitest v4 with TypeScript + path aliases
+   - npm test (run) and npm run test:watch (watch mode)
+   - Sample engine tests validating Node-only environment
+   ```
+
+**Files created/modified:**
+
+| File | Action |
+| --- | --- |
+| `vitest.config.ts` | Created — Vitest config (Node env, path aliases, test glob) |
+| `package.json` | Modified — added `vitest` devDependency + `test`/`test:watch` scripts |
+| `src/game/engine/__tests__/engine.test.ts` | Created — 3 sample engine tests |
+| `SPECS.md` | Modified — US-1.3 and all tasks marked `[x]`, E1 summary updated |
+
+---
+
+## Prompt 15 — Run Tests via Skill (US-1.3)
+
+**Output:** Test results report with pass/fail counts and engine isolation check.
+
+**Input files:** `.claude/skills/run-tests/SKILL.md`
+
+```
+/run-tests
+```
+
+The `/run-tests` skill executed the following workflow:
+
+1. Runs `npm test -- --reporter=verbose` → Vitest v4.0.18
+2. Analyzes results — all 3 tests pass:
+   - `Engine module > loads without errors in a Node environment` (3ms)
+   - `Engine module > does not depend on browser globals` (0ms)
+   - `Engine module > supports basic arithmetic (placeholder)` (0ms)
+3. Checks engine isolation:
+   - No `from 'phaser'` imports in `src/game/engine/` ✓
+   - No `from "phaser"` imports in `src/game/engine/` ✓
+   - No `window.` references in `src/game/engine/` ✓
+   - No `document.` references in `src/game/engine/` ✓
+4. Reports summary: **3 passed** | **0 failed** | **0 skipped**
+
+**Note:** This is the first `/run-tests` invocation with a working test runner.
+US-1.3 completes E1 (Project Setup) — all 3 stories are now `[x]`. The project
+is ready for E2 (Character Creation) and E3 (Survival Engine) implementation.
+
+---
+
 ## Usage Notes
 
 **Sequential dependency chain:**
+
+### Phase 1 — Project Bootstrap
 
 ```
 Prompt 1 → README-CLAUDE.md
@@ -302,7 +668,25 @@ Prompt 6 → .claude/agents/ + .claude/skills/  (uses: outputs of Prompts 3, 4, 
 Prompt 7 → README-PROMPTS.md   (meta: documents the full chain)
 ```
 
+### Phase 2 — Story Implementation (repeat per story)
+
+```
+Template per story:
+  Prompt N   → Dependency & readiness analysis   (uses: SPECS.md + CLAUDE.md)
+  Prompt N+1 → /implement-story US-X.Y           (uses: SPECS.md + CLAUDE.md + skill)
+  Prompt N+2 → /run-tests                        (uses: skill + test runner)
+```
+
+### Phase 2 — Execution Log
+
+| Prompts | Story | Date | Status |
+| --- | --- | --- | --- |
+| 8–10 | US-1.1: Initialize Next.js Project | 2026-03-01 | `[x]` Complete |
+| 11–12 | US-1.2: Install Core Dependencies | 2026-03-01 | `[x]` Complete |
+| 13–15 | US-1.3: Testing Infrastructure | 2026-03-01 | `[x]` Complete |
+
 **Reusability:** These prompts can be adapted for any game project by replacing:
 - `README-GDD.md` content (game design)
 - Entity lists and game mechanics in Prompts 3-4
 - Agent/skill definitions in Prompt 6 to match project needs
+- Story IDs in Phase 2 prompts to target any story in SPECS.md

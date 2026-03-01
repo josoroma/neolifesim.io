@@ -15,7 +15,7 @@
 
 | Epic | Stories | Todo | In Progress | Completed | Blocked |
 | --- | --- | --- | --- | --- | --- |
-| E1: Project Setup | 3 | 1 | 0 | 2 | 0 |
+| E1: Project Setup | 3 | 0 | 0 | 3 | 0 |
 | E2: Character Creation | 2 | 2 | 0 | 0 | 0 |
 | E3: Survival Engine | 4 | 4 | 0 | 0 | 0 |
 | E4: World & Day/Night Cycle | 3 | 3 | 0 | 0 | 0 |
@@ -96,7 +96,7 @@ Feature: Core Dependencies
 
 ---
 
-### US-1.3: Testing Infrastructure [ ]
+### US-1.3: Testing Infrastructure [x]
 
 **As a** developer
 **I want** a test runner configured for the engine logic
@@ -122,9 +122,9 @@ Feature: Testing Infrastructure
 
 #### Tasks
 
-- [ ] T-1.3.1: Configure test runner (Vitest or Jest) with TypeScript support
-- [ ] T-1.3.2: Add `npm test` and `npm test -- --grep` scripts to `package.json`
-- [ ] T-1.3.3: Create a sample engine test to validate the setup
+- [x] T-1.3.1: Configure test runner (Vitest or Jest) with TypeScript support
+- [x] T-1.3.2: Add `npm test` and `npm test -- --grep` scripts to `package.json`
+- [x] T-1.3.3: Create a sample engine test to validate the setup
 
 ---
 
